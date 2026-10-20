@@ -4,7 +4,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 # ---- Opciones ----
-set(SEAGULL_CXX_STD "98" CACHE STRING "Estándar de C++: 98 11 14 17 20 23")
+set(SEAGULL_CXX_STD "23" CACHE STRING "Estándar de C++: 98 11 14 17 20 23")
 set_property(CACHE SEAGULL_CXX_STD PROPERTY STRINGS 98 11 14 17 20 23)
 set(_seagull_allowed_std 98 11 14 17 20 23)
 if(NOT SEAGULL_CXX_STD IN_LIST _seagull_allowed_std)
