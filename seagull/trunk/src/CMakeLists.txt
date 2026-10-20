@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.22)
 project(seagull VERSION 1.8.3 LANGUAGES C CXX)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -116,6 +116,7 @@ add_executable(seagull ${SEAGULL_EXE_SRCS}
 
 target_compile_definitions(seagull PRIVATE INIT_CALL_FILTER)
 set_target_properties(seagull PROPERTIES ENABLE_EXPORTS ON)   # -rdynamic
+set_target_properties(seagull PROPERTIES BUILD_RPATH "$ORIGIN") # dlopen encuentra las .so junto al ejecutable
 #target_link_libraries(seagull PRIVATE pthread dl fl)
 #target_link_libraries(seagull PRIVATE pthread dl) # sin -lfl: xml_definition.l define yywrap() y main.cpp define main()
 target_link_libraries(seagull PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
