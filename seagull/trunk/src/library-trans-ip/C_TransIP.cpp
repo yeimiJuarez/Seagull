@@ -56,20 +56,20 @@
 
 
 #define LOG_ALL(m) { \
- char L_msg [100] ; \
- snprintf(L_msg, 100, (char*)(m)) ; \
+ char L_msg [2048] ; \
+ snprintf(L_msg, sizeof(L_msg), (char*)(m)) ; \
 (*m_logInfo)(L_msg); \
 }
 
 #define LOG_ALL_P1(m,P1) { \
- char L_msg [100] ; \
- snprintf(L_msg, 100, (char*)(m), (P1)) ; \
+ char L_msg [2048] ; \
+ snprintf(L_msg, sizeof(L_msg), (char*)(m), (P1)) ; \
 (*m_logInfo)(L_msg); \
 }
 
 #define LOG_ALL_P2(m,P1,P2) { \
- char L_msg [100] ; \
- snprintf(L_msg, 100, (char*)(m), (P1),(P2)) ; \
+ char L_msg [2048] ; \
+ snprintf(L_msg, sizeof(L_msg), (char*)(m), (P1),(P2)) ; \
 (*m_logInfo)(L_msg); \
 }
 
