@@ -39,7 +39,7 @@ if ((v) == NULL) { \
 }
 
 
-#define MAX_HEADER_LEN  4096
+#define MAX_HEADER_LEN  2049  /* = tamano de L_result[] en CryptExternalMethods.cpp */
 #define MD5_HASH_SIZE 16
 #define HASH_HEX_SIZE 2*MD5_HASH_SIZE
 
@@ -143,6 +143,14 @@ char *stristr (const char *s1, const char *s2) {
   return 0;
 }
 
+/* Copia [start,end) en dst (capacidad cap): trunca y siempre termina en NUL. */
+static void copy_field(char *dst, size_t cap, const char *start, const char *end) {
+  size_t n = (size_t)(end - start);
+  if (n >= cap) n = cap - 1;
+  memcpy(dst, start, n);
+  dst[n] = '\0';
+}
+
 int createAuthHeader(char * user, char * password, char * method,
                      char * uri, char * msgbody, char * auth, 
                      char * aka_OP,
@@ -162,8 +170,7 @@ int createAuthHeader(char * user, char * password, char * method,
     start = start + strlen("algorithm=");
     if (*start == '"') { start++; }
     end = start + strcspn(start, " ,\"\r\n");
-    strncpy(algo, start, end - start);
-    algo[end - start] ='\0';
+    copy_field(algo, sizeof(algo), start, end);
     
   }
   
@@ -208,8 +215,7 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
     start = start + strlen("qop=");
     if (*start == '"') { start++; }
     end = start + strcspn(start, " ,\"\r\n");
-    strncpy(authtype, start, end - start);
-    authtype[end - start] ='\0';
+    copy_field(authtype, sizeof(authtype), start, end);
     sprintf(cnonce, "%x", rand());
     sprintf(nc, "%08x", mync);
   }
@@ -220,22 +226,20 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
     start = start + strlen("opaque=");
     if (*start == '"') { start++; }
     end = start + strcspn(start, " ,\"\r\n");
-    strncpy(opaque, start, end - start);
-    opaque[end - start] ='\0';
+    copy_field(opaque, sizeof(opaque), start, end);
     has_opaque = 1;
   }
   
   // Extract the Realm 
   if ((start = stristr(auth, "realm=")) == NULL) {
-    sprintf(result, "createAuthHeaderMD5: couldn't parse realm in '%s'", auth);
+    snprintf(result, MAX_HEADER_LEN, "createAuthHeaderMD5: couldn't parse realm in '%s'", auth);
     EVP_MD_CTX_free(Md5Ctx);
     return 0;
   }
   start = start + strlen("realm=");
   if (*start == '"') { start++; }       
   end = start + strcspn(start, ",\"\r\n");
-  strncpy(tmp, start, end - start);
-  tmp[end - start] ='\0';
+  copy_field(tmp, sizeof(tmp), start, end);
   
   // Load in A1 
   EVP_DigestInit_ex(Md5Ctx, EVP_md5(), NULL);
@@ -247,7 +251,7 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   EVP_DigestFinal_ex(Md5Ctx, ha1, NULL);
   hashToHex(&ha1[0], &ha1_hex[0]);
   
-  sprintf(result, "Digest username=\"%s\",realm=\"%s\"",user,tmp);
+  snprintf(result, MAX_HEADER_LEN, "Digest username=\"%s\",realm=\"%s\"",user,tmp);
   if (cnonce[0] != '\0') {
     snprintf(L_result_buf, sizeof(L_result_buf), ",cnonce=\"%s\",nc=%s,qop=%s",cnonce,nc,authtype);
     strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
@@ -255,7 +259,7 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   
   // Construct the URI 
 
-  sprintf(tmp, "%s", uri);
+  snprintf(tmp, sizeof(tmp), "%s", uri);
   
   // If using Auth-Int make a hash of the body - which is NULL for REG 
   if (stristr(authtype, "auth-int") != NULL) {
@@ -289,8 +293,7 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   start = start + strlen("nonce=");
   if (*start == '"') { start++; }
   end = start + strcspn(start, " ,\"\r\n");
-  strncpy(tmp, start, end - start);
-  tmp[end - start] ='\0';
+  copy_field(tmp, sizeof(tmp), start, end);
   
   EVP_DigestInit_ex(Md5Ctx, EVP_md5(), NULL);
   EVP_DigestUpdate(Md5Ctx, &ha1_hex, HASH_HEX_SIZE);
@@ -547,13 +550,12 @@ int createAuthHeaderAKAv1MD5(char * user, char * aka_OP,
   start = start + strlen("nonce=");
   if (*start == '"') { start++; }
   end = start + strcspn(start, " ,\"\r\n");
-  strncpy(tmp, start, end - start);
-  tmp[end - start] ='\0';
+  copy_field(tmp, sizeof(tmp), start, end);
 
   /* Compute the AKA RES */
   resp_hex[0]=0;
   nonce64 = tmp;
-  nonce = base64_decode_string(nonce64,end-start,&noncelen);
+  nonce = base64_decode_string(nonce64,(unsigned int)strlen(tmp),&noncelen);
   if (noncelen<RANDLEN+AUTNLEN) {
     sprintf(result,"createAuthHeaderAKAv1MD5 : Nonce is too short %d < %d expected \n",
     noncelen,RANDLEN+AUTNLEN);
