@@ -23,9 +23,7 @@ set(CMAKE_C_STANDARD 90)
 set(CMAKE_C_EXTENSIONS ON)            # gnu90
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)   # -fPIC
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-#if(NOT CMAKE_BUILD_TYPE)
-#  set(CMAKE_BUILD_TYPE Release)
-#endif()
+
 get_property(_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(NOT _multi AND NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Baseline CACHE STRING "Baseline (equivalente a build.conf), Debug, Release o RelWithDebInfo" FORCE)
@@ -94,7 +92,7 @@ seagull_collect(SEAGULL_EXE_SRCS
   xml-parser generator-stats parser-frame filter-frame command-actions
   generator-control)
 
-# TODO: lex/yacc de xml-parser (ver notas abajo)
+
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
@@ -117,8 +115,7 @@ add_executable(seagull ${SEAGULL_EXE_SRCS}
 target_compile_definitions(seagull PRIVATE INIT_CALL_FILTER)
 set_target_properties(seagull PROPERTIES ENABLE_EXPORTS ON)   # -rdynamic
 set_target_properties(seagull PROPERTIES BUILD_RPATH "$ORIGIN") # dlopen encuentra las .so junto al ejecutable
-#target_link_libraries(seagull PRIVATE pthread dl fl)
-#target_link_libraries(seagull PRIVATE pthread dl) # sin -lfl: xml_definition.l define yywrap() y main.cpp define main()
+# sin -lfl: xml_definition.l define yywrap() y main.cpp define main()
 target_link_libraries(seagull PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
 
 # ---- Plugins (BUILD_2, 5, 6, 7, 12) ----
@@ -132,9 +129,69 @@ seagull_plugin(generalmethods _generalmethods common protocol-frame library-gene
 add_executable(csvextract tool-csvextract/csvextract.c)
 add_executable(csvsplit   tool-csvsplit/csvsplit.c)
 
-# ---- Fase B: requieren portar a OpenSSL 3 ----
+
+# ---- OpenSSL: usar el del sistema si existe; si no, compilar desde fuente vendored ----
+set(SEAGULL_OPENSSL_VERSION "3.5.8" CACHE STRING
+    "Versión de OpenSSL a compilar si no se encuentra una instalación en el sistema")
+set(SEAGULL_EXT_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external-lib-src" CACHE PATH
+    "Directorio con tarballs de dependencias externas (modo sin internet)")
+
 if(SEAGULL_BUILD_CRYPTO OR SEAGULL_BUILD_TLS)
-  find_package(OpenSSL REQUIRED)
+  find_package(OpenSSL QUIET)
+
+  if(OpenSSL_FOUND)
+    message(STATUS "OpenSSL del sistema encontrado: ${OPENSSL_VERSION} (${OPENSSL_INCLUDE_DIR})")
+  else()
+    message(STATUS "OpenSSL no encontrado en el sistema; "
+                    "se compilará ${SEAGULL_OPENSSL_VERSION} desde fuente vendored")
+
+    set(_openssl_tarball "${SEAGULL_EXT_SRC_DIR}/openssl-${SEAGULL_OPENSSL_VERSION}.tar.gz")
+    if(NOT EXISTS ${_openssl_tarball})
+      message(FATAL_ERROR
+        "No se encontró ${_openssl_tarball}. "
+        "Coloca el tarball de OpenSSL ${SEAGULL_OPENSSL_VERSION} en ${SEAGULL_EXT_SRC_DIR} "
+        "o ajusta SEAGULL_OPENSSL_VERSION al valor disponible.")
+    endif()
+
+    include(ExternalProject)
+
+    set(_openssl_install_dir "${CMAKE_BINARY_DIR}/ext-install/openssl-${SEAGULL_OPENSSL_VERSION}")
+
+    ExternalProject_Add(openssl_ext
+      URL               ${_openssl_tarball}
+      URL_HASH          SHA256=a8f84a39918ec6415ce765d9b429d313ba97b8143169c172e734b9514464f5b2
+      DOWNLOAD_EXTRACT_TIMESTAMP TRUE   # resuelve también el warning de CMP0135
+      PREFIX            ${CMAKE_BINARY_DIR}/ext-build/openssl
+      INSTALL_DIR       ${_openssl_install_dir}
+      BUILD_IN_SOURCE   1
+      CONFIGURE_COMMAND <SOURCE_DIR>/config --prefix=<INSTALL_DIR> --openssldir=<INSTALL_DIR>/ssl shared
+      BUILD_COMMAND     make -j${CMAKE_BUILD_PARALLEL_LEVEL}
+      INSTALL_COMMAND   make install_sw   # instala libs + headers, sin docs/manpages
+      BUILD_BYPRODUCTS
+        <INSTALL_DIR>/lib64/libssl.so
+        <INSTALL_DIR>/lib64/libcrypto.so
+    )
+
+    # Creamos los IMPORTED targets manualmente, con los mismos nombres
+    # (OpenSSL::SSL / OpenSSL::Crypto) que usa find_package(OpenSSL),
+    # para que el resto del CMakeLists.txt no necesite ningún cambio.
+    file(MAKE_DIRECTORY "${_openssl_install_dir}/include")  # evita error de CMake: el dir aún no existe en configure-time
+
+    add_library(OpenSSL::Crypto SHARED IMPORTED)
+    set_target_properties(OpenSSL::Crypto PROPERTIES
+      IMPORTED_LOCATION             "${_openssl_install_dir}/lib64/libcrypto.so"
+      INTERFACE_INCLUDE_DIRECTORIES "${_openssl_install_dir}/include")
+    add_dependencies(OpenSSL::Crypto openssl_ext)
+
+    add_library(OpenSSL::SSL SHARED IMPORTED)
+    set_target_properties(OpenSSL::SSL PROPERTIES
+      IMPORTED_LOCATION             "${_openssl_install_dir}/lib64/libssl.so"
+      INTERFACE_INCLUDE_DIRECTORIES "${_openssl_install_dir}/include"
+      INTERFACE_LINK_LIBRARIES      OpenSSL::Crypto)
+    add_dependencies(OpenSSL::SSL openssl_ext)
+
+    set(OpenSSL_FOUND TRUE)
+  endif()
 endif()
 if(SEAGULL_BUILD_CRYPTO)
   seagull_plugin(crypto _crypto common protocol-frame library-crypto)
