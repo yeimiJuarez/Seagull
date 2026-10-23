@@ -151,6 +151,15 @@ static void copy_field(char *dst, size_t cap, const char *start, const char *end
   dst[n] = '\0';
 }
 
+/* Anade 'piece' a result (capacidad MAX_HEADER_LEN). Devuelve 0 si no cabe. */
+static int append_field(char *result, const char *piece) {
+  size_t used = strlen(result);
+  size_t len  = strlen(piece);
+  if (used + len >= MAX_HEADER_LEN) return 0;
+  memcpy(result + used, piece, len + 1);
+  return 1;
+}
+
 int createAuthHeader(char * user, char * password, char * method,
                      char * uri, char * msgbody, char * auth, 
                      char * aka_OP,
@@ -251,10 +260,12 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   EVP_DigestFinal_ex(Md5Ctx, ha1, NULL);
   hashToHex(&ha1[0], &ha1_hex[0]);
   
-  snprintf(result, MAX_HEADER_LEN, "Digest username=\"%s\",realm=\"%s\"",user,tmp);
+  if (snprintf(result, MAX_HEADER_LEN, "Digest username=\"%s\",realm=\"%s\"",user,tmp) >= MAX_HEADER_LEN) {
+    goto too_long;
+  }
   if (cnonce[0] != '\0') {
     snprintf(L_result_buf, sizeof(L_result_buf), ",cnonce=\"%s\",nc=%s,qop=%s",cnonce,nc,authtype);
-    strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
+    if (!append_field(result, L_result_buf)) goto too_long;
   }
   
   // Construct the URI 
@@ -282,7 +293,7 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   hashToHex(&ha2[0], &ha2_hex[0]);
   
   snprintf(L_result_buf, sizeof(L_result_buf), ",uri=\"%s\"", tmp);
-  strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
+  if (!append_field(result, L_result_buf)) goto too_long;
   
   // Extract the Nonce 
   if ((start = stristr(auth, "nonce=")) == NULL) {
@@ -313,15 +324,20 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   hashToHex(&resp[0], &resp_hex[0]);
   
   snprintf(L_result_buf, sizeof(L_result_buf), ",nonce=\"%s\",response=\"%s\",algorithm=%s", tmp, resp_hex, algo);
-  strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
+  if (!append_field(result, L_result_buf)) goto too_long;
   
   if (has_opaque) {
     snprintf(L_result_buf, sizeof(L_result_buf), ",opaque=\"%s\"",opaque);
-    strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
+    if (!append_field(result, L_result_buf)) goto too_long;
   }
   
   EVP_MD_CTX_free(Md5Ctx);
   return 1;
+
+too_long:
+  snprintf(result, MAX_HEADER_LEN, "createAuthHeaderMD5: header too long");
+  EVP_MD_CTX_free(Md5Ctx);
+  return 0;
 }
 
 
@@ -617,7 +633,10 @@ int createAuthHeaderAKAv1MD5(char * user, char * aka_OP,
     auts_hex[AUTS64LEN-1]=0;
     
     snprintf(L_result_buf, sizeof(L_result_buf), ",auts=\"%s\"",auts_hex);
-    strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
+    if (!append_field(result, L_result_buf)) {
+      snprintf(result, MAX_HEADER_LEN, "createAuthHeaderAKAv1MD5: auts too long");
+      return 0;
+    }
   }
   
   return 1;
