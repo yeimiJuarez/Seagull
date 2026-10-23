@@ -29,9 +29,17 @@
 #include <openssl/md5.h>
 #include "milenage.h"
 
-#include "Utils.hpp"
+/* ALLOC_VAR: copiado localmente de common/Utils.hpp para mantener este
+ * archivo como C puro (portado de sipp), sin depender de headers C++. */
+#define ALLOC_VAR(v,t,s) \
+(v) = (t) malloc (s); \
+if ((v) == NULL) { \
+  fprintf(stderr, "ALLOC_VAR (" #v ", " #t ", size: %lu) failure\n", (unsigned long)(s)); \
+  exit(-1) ; \
+}
 
-#define MAX_HEADER_LEN  2049
+
+#define MAX_HEADER_LEN  4096
 #define MD5_HASH_SIZE 16
 #define HASH_HEX_SIZE 2*MD5_HASH_SIZE
 
@@ -186,6 +194,7 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   static unsigned int mync = 1;
   int has_opaque = 0;
   MD5_CTX Md5Ctx;
+  char L_result_buf[MAX_HEADER_LEN + 128];
   
   // Extract the Auth Type - If not present, using 'none' 
   cnonce[0] = '\0';
@@ -234,7 +243,8 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   
   sprintf(result, "Digest username=\"%s\",realm=\"%s\"",user,tmp);
   if (cnonce[0] != '\0') {
-    sprintf(result, "%s,cnonce=\"%s\",nc=%s,qop=%s",result,cnonce,nc,authtype);
+    snprintf(L_result_buf, sizeof(L_result_buf), ",cnonce=\"%s\",nc=%s,qop=%s",cnonce,nc,authtype);
+    strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
   }
   
   // Construct the URI 
@@ -261,7 +271,8 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   MD5_Final(ha2, &Md5Ctx);
   hashToHex(&ha2[0], &ha2_hex[0]);
   
-  sprintf(result, "%s,uri=\"%s\"",result,tmp);
+  snprintf(L_result_buf, sizeof(L_result_buf), ",uri=\"%s\"", tmp);
+  strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
   
   // Extract the Nonce 
   if ((start = stristr(auth, "nonce=")) == NULL) {
@@ -291,10 +302,12 @@ int createAuthHeaderMD5(char * user, char * password, char * method,
   MD5_Final(resp, &Md5Ctx);
   hashToHex(&resp[0], &resp_hex[0]);
   
-  sprintf(result, "%s,nonce=\"%s\",response=\"%s\",algorithm=%s",result,tmp,resp_hex,algo);
+  snprintf(L_result_buf, sizeof(L_result_buf), ",nonce=\"%s\",response=\"%s\",algorithm=%s", tmp, resp_hex, algo);
+  strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
   
   if (has_opaque) {
-    sprintf(result, "%s,opaque=\"%s\"",result,opaque);
+    snprintf(L_result_buf, sizeof(L_result_buf), ",opaque=\"%s\"",opaque);
+    strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
   }
   
   return 1;
@@ -516,6 +529,7 @@ int createAuthHeaderAKAv1MD5(char * user, char * aka_OP,
   IK ik;
   AK ak;
   int i;
+  char L_result_buf[MAX_HEADER_LEN + 128];
 
   // Extract the Nonce 
   if ((start = stristr(auth, "nonce=")) == NULL) {
@@ -592,7 +606,8 @@ int createAuthHeaderAKAv1MD5(char * user, char * aka_OP,
     }
     auts_hex[AUTS64LEN-1]=0;
     
-    sprintf(result, "%s,auts=\"%s\"",result,auts_hex);
+    snprintf(L_result_buf, sizeof(L_result_buf), ",auts=\"%s\"",auts_hex);
+    strncat(result, L_result_buf, MAX_HEADER_LEN - strlen(result) - 1);
   }
   
   return 1;
