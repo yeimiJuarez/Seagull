@@ -7,3 +7,7 @@ build-*/
 
 # Salidas de pruebas de verificación
 out/
+
+# Certificados y claves (se generan con tests/gen-certs.sh)
+*.pem
+*.key
