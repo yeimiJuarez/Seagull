@@ -14,6 +14,7 @@ option(SEAGULL_WERROR       "Tratar advertencias como errores" OFF)
 option(SEAGULL_SANITIZE     "Activar ASan y UBSan"             OFF)
 option(SEAGULL_BUILD_CRYPTO "Compilar lib_crypto.so"           OFF)
 option(SEAGULL_BUILD_TLS    "Compilar libtrans_iptls.so (OpenSSL)" OFF)
+option(SEAGULL_BUILD_SCTP   "Compilar libtrans_extsctp.so (SCTP nativo del kernel)" OFF)
 
 # ---- Estándares ----
 set(CMAKE_CXX_STANDARD ${SEAGULL_CXX_STD})
@@ -206,4 +207,15 @@ if(SEAGULL_BUILD_TLS)
   target_link_libraries(trans_iptls PRIVATE OpenSSL::SSL OpenSSL::Crypto ${CMAKE_DL_LIBS} m)
   target_compile_definitions(trans_iptls PRIVATE OPENSSL_NO_KRB5)
 endif()
-# libtrans_extsctp.so queda fuera: depende de sctplib/socketapi (abandonadas).
+# ---- SCTP nativo (BUILD_9): kernel Linux + <netinet/sctp.h>, sin sctplib/socketapi ----
+if(SEAGULL_BUILD_SCTP)
+  include(CheckIncludeFileCXX)
+  check_include_file_cxx(netinet/sctp.h SEAGULL_HAVE_NETINET_SCTP_H)
+  if(NOT SEAGULL_HAVE_NETINET_SCTP_H)
+    message(FATAL_ERROR "No se encontró <netinet/sctp.h>. Instala lksctp-tools-devel")
+  endif()
+  seagull_plugin(trans_extsctp trans_extsctp common protocol-frame transport-frame
+                 library-trans-ip library-trans-extsctp)
+  target_include_directories(trans_extsctp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/library-trans-extsctp)
+  target_link_libraries(trans_extsctp PRIVATE ${CMAKE_DL_LIBS})
+endif()
