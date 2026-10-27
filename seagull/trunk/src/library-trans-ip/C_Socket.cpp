@@ -803,7 +803,11 @@ C_Socket* C_SocketWithData::process_fd_ready(fd_set *P_rSet,
       L_rc = _read();
     }
     
-    if (L_rc <= 0) {
+    if ((L_rc < 0) && ((errno == EAGAIN) || (errno == EWOULDBLOCK) || (errno == EINTR))) {
+      // sin datos de aplicacion todavia (p.ej. NewSessionTicket de TLS 1.3): seguir esperando
+      SOCKET_DEBUG(0, "C_SocketWithData::process_fd_set() NO DATA YET");
+      P_event->m_type = C_TransportEvent::E_TRANS_NO_EVENT ;
+    } else if (L_rc <= 0) {
       SOCKET_DEBUG(0, "C_SocketWithData::process_fd_set() CLOSED");
       P_event->m_type = C_TransportEvent::E_TRANS_CLOSED ;
       P_event->m_channel_id = m_channel_id ;

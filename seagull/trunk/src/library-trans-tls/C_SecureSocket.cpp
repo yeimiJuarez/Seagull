@@ -17,6 +17,7 @@
  *
  */
 
+#include <cerrno>
 #include "Utils.hpp"
 #include "C_SecureSocket.hpp"
 
@@ -76,7 +77,7 @@ void C_SecureSocket::ssl_error(int P_returnCode) {
   int L_ret ;
   L_ret = SSL_get_error(m_ssl, P_returnCode) ;
 
-  if (P_returnCode <= SSL_ERROR_WANT_CONNECT) {
+  if ((L_ret >= 0) && (L_ret <= SSL_ERROR_WANT_CONNECT)) {
     SOCKET_ERROR(0, m_ssl_error_string[L_ret]);
   } else {
      SOCKET_ERROR(0, "SSL error " << L_ret);
@@ -143,8 +144,18 @@ C_SecureSocketServer::~C_SecureSocketServer() {
 
 int C_SecureSocketServer::_call_read() { 
   int L_result = 0 ;
-    L_result = SSL_read(m_ssl, m_read_buf, m_read_buf_size);
-    if (L_result < 0) ssl_error(L_result) ;
+  L_result = SSL_read(m_ssl, m_read_buf, m_read_buf_size);
+  if (L_result <= 0) {
+    int L_err = SSL_get_error(m_ssl, L_result);
+    if ((L_err == SSL_ERROR_WANT_READ) || (L_err == SSL_ERROR_WANT_WRITE)) {
+      errno = EAGAIN ;       // TLS 1.3: datos de control, no es un error
+      return (-1) ;
+    }
+    if (L_result < 0) {
+      ssl_error(L_result) ;
+      errno = ECONNRESET ;   // error real: el llamador debe cerrar el canal
+    }
+  }
   return (L_result) ;
 }
 
@@ -224,7 +235,17 @@ int C_SecureSocketClient::_call_read() {
   int L_result = 0 ;
 
   L_result = SSL_read(m_ssl, m_read_buf, m_read_buf_size);
-  if (L_result < 0) ssl_error(L_result) ;
+  if (L_result <= 0) {
+    int L_err = SSL_get_error(m_ssl, L_result);
+    if ((L_err == SSL_ERROR_WANT_READ) || (L_err == SSL_ERROR_WANT_WRITE)) {
+      errno = EAGAIN ;       // TLS 1.3: datos de control, no es un error
+      return (-1) ;
+    }
+    if (L_result < 0) {
+      ssl_error(L_result) ;
+      errno = ECONNRESET ;   // error real: el llamador debe cerrar el canal
+    }
+  }
 
   return (L_result) ;
 }
