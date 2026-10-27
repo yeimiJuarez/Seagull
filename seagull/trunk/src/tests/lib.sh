@@ -17,3 +17,14 @@ prepare_env() {
          -e 's|name="max-send" value="200"|name="max-send" value="50"|' \
          -e 's|</configuration>|  <define entity="traffic-param" name="files-no-timestamp" value="true"></define>\n  <define entity="traffic-param" name="number-calls" value="100"></define>\n</configuration>|' "$c/conf.client.xml"
 }
+
+# prepare_sctp_conf <dir-salida>: genera conf.{server,client}-sctp.xml desde las conf TCP ya ajustadas
+prepare_sctp_conf() {
+  local c=${1}/env/config lado
+  for lado in server client; do
+    sed -e 's|libtrans_ip.so|libtrans_extsctp.so|' \
+        -e 's|create_cipio_instance|create_cipsctpio_instance|' \
+        -e 's|delete_cipio_instance|delete_cipsctpio_instance|' \
+        "$c/conf.$lado.xml" > "$c/conf.$lado-sctp.xml"
+  done
+}
