@@ -15,7 +15,12 @@ This repo was cloned from [Seagull's svn repo on SourceForge](https://svn.code.s
 
 ## Goal of this Repo
 
-I wanted to build and use Seagull on Ubuntu for Diameter protocol testing. I came across a lot of roadblocks that needed to be surmounted, primarily compiler errors when I tried to build it on anything modern, say CentOS 7 or Ubuntu 14.04.
+C++23 Modernization for Seagull (Diameter Testing on AlmaLinux 10.2)
+
+Driven by the need to perform Diameter protocol testing using Seagull on AlmaLinux 10.2, I started this project to update and modernize parts of the codebase using C++23.
+
+While there is still work ahead and this is an ongoing effort, this repository represents a solid first step toward bringing the legacy code up to date with a more modern version of the language. Contributions and feedback are welcome!
+Several legacy commands and configurations originally intended for other Linux distributions have been kept intact, with plans to update and optimize them over time. It is worth emphasizing that this project has been iterated and refined using AlmaLinux 10.2 as the primary target environment.
 
 The primary goal with this repo is to provide patches to the Subversion revision 422 of Seagull to make it build and work on Ubuntu 15.04 and CentOS 7.1 (1503).
 
