@@ -21,7 +21,7 @@ for f in conf.server-tls.xml conf.client-tls.xml; do
          -e "s|passwd=zzz\"|passwd=$PASS\"|" \
          -e 's|</configuration>|  <define entity="traffic-param" name="files-no-timestamp" value="true"></define>\n</configuration>|' "$f"
 done
-sed -i -e 's|name="call-rate" value="1"|name="call-rate" value="10"|' \
+sed -i -e '/name="number-calls"/d' -e 's|name="call-rate" value="1"|name="call-rate" value="10"|' \
        -e 's|name="max-send" value="200"|name="max-send" value="50"|' \
        -e 's|</configuration>|  <define entity="traffic-param" name="number-calls" value="100"></define>\n</configuration>|' conf.client-tls.xml
 echo "--- conf cliente tras los ajustes:"
