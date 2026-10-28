@@ -114,3 +114,4 @@ no está cargado, esa etapa queda como AVISO). Logs en
 | `El puerto 3868 no se abrió` (SCTP) | `cat /proc/net/sctp/eps` con el servidor corriendo |
 | `servidor no arranco` (TLS) | Contraseña o certificados: `tests/gen-certs.sh` |
 | Falla la carga con un build Debug | Usar `build-release` o bajar `RATE` |
+| El cliente tarda 15-25 s antes de enviar tráfico | El *hostname* no se resuelve localmente y el DNS pierde consultas: agregarlo a `/etc/hosts` (comprobar con `time getent ahostsv4 "$(hostname)"`, debe ser instantáneo) |
