@@ -11,3 +11,6 @@ out/
 # Certificados y claves (se generan con tests/gen-certs.sh)
 *.pem
 *.key
+
+# Tarballs de dependencias externas (se descargan, ver README.md)
+external-lib-src/

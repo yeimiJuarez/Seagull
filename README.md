@@ -36,105 +36,114 @@ Run ``svn info https://svn.code.sf.net/p/gull/code/`` and you'll see the followi
 
 Two directories that came directly from the SVN to Git clone are doc and seagull. Everything else was added by me.
 
-## Build Instructions with Patches
+## Build Instructions (CMake)
 
-Since I have already done the work for you by adding patches to build on Ubuntu 15.04 and CentOS 7.1 (1503) ;) you can simply clone this repo and follow these instructions.
+The `modernizacion` branch replaces the legacy `build.ksh` / `build-ext-lib.ksh` scripts
+(kept in `seagull/trunk/src/legacy/` for reference) with CMake. It builds with C++98 up to
+C++23 (default C++23), OpenSSL 3 and native Linux kernel SCTP.
 
-These instructions have been tested to work on:
+Tested on AlmaLinux 10.2 (GCC 14, OpenSSL 3.5.8).
 
-- CentOS (64-bit version only) - 7
-- openSUSE - 13.2 (tested up to commit 79137704f54, before merging patches for issue #1)
-- Ubuntu (64-bit versions only) - 14.04, 16.04, 18.04
+### Prerequisites
 
-### First Steps
+AlmaLinux 10.2 (the CRB repository is needed for `flex-devel`):
 
-Install pre-requisites on Ubuntu.
+    sudo dnf install -y dnf-plugins-core
+    sudo dnf config-manager --set-enabled crb
+    sudo dnf group install "Development Tools"
+    sudo dnf install -y cmake make git
+    sudo dnf install -y clang clang-tools-extra
+    sudo dnf install -y openssl-devel libxml2-devel lksctp-tools-devel
+    sudo dnf install -y flex flex-devel bison perl-core ksh
 
-    user@host:~$ sudo aptitude install build-essential curl git libglib2.0-dev ksh bison flex vim tmux
+Optional, for debugging and for `SEAGULL_SANITIZE=ON` (ASan/UBSan):
 
-Install pre-requisites on CentOS.
+    sudo dnf install -y gdb valgrind libasan libubsan
 
-    user@host:~$ sudo yum groupinstall "Development Tools"
-    user@host:~$ sudo yum install curl git glib2-devel ksh bison flex flex-devel vim tmux
+`perl-core` is only needed to build OpenSSL from source, and `ksh` to run the
+`start*.ksh` scripts of the example environments.
 
-Install pre-requisites on openSUSE.
+### Build
 
-    user@host:~$ sudo zypper install -t pattern devel_basis
-    user@host:~$ sudo zypper install curl git glib2-devel ksh bison flex
+    cd seagull/trunk/src
+    cmake -S . -B build -DSEAGULL_BUILD_TLS=ON -DSEAGULL_BUILD_CRYPTO=ON -DSEAGULL_BUILD_SCTP=ON
+    cmake --build build -j"$(nproc)"
 
-Clone this repo and create a branch to build from.
+The executable and the plugins (`.so`) are generated in `build/bin`.
 
-    user@host:~$ mkdir -p ~/opt/src
-    user@host:~$ cd ~/opt/src
-    user@host:~/opt/src$ git clone https://github.com/codeghar/Seagull.git seagull
-    user@host:~/opt/src$ cd ~/opt/src/seagull
-    user@host:~/opt/src/seagull$ git branch build master
-    user@host:~/opt/src/seagull$ git checkout build
+| Option | Default | Description |
+|---|---|---|
+| `SEAGULL_CXX_STD` | `23` | C++ standard: 98, 11, 14, 17, 20 or 23 |
+| `SEAGULL_BUILD_TLS` | `OFF` | TLS transport plugin (`libtrans_iptls.so`) |
+| `SEAGULL_BUILD_CRYPTO` | `OFF` | Crypto plugin (`lib_crypto.so`: Digest, AKA, Radius) |
+| `SEAGULL_BUILD_SCTP` | `OFF` | SCTP transport plugin (`libtrans_extsctp.so`) |
+| `SEAGULL_WERROR` | `OFF` | Treat warnings as errors |
+| `SEAGULL_SANITIZE` | `OFF` | AddressSanitizer and UndefinedBehaviorSanitizer |
+| `CMAKE_BUILD_TYPE` | Baseline | Use `Release` for load tests |
 
-### Add SCTP Support
+CMake remembers `-D` options in an existing build directory: turn them off explicitly
+(`-DSEAGULL_BUILD_TLS=OFF`) or use a new directory.
 
-Download the latest sctplib and socketapi tarballs from http://www.sctp.de/ to the external-lib-src directory. They were are version 1.0.15 and 2.2.8 respectively at the time of writing.
+### OpenSSL
 
-    user@host:~$ cd ~/opt/src/seagull/seagull/trunk/src
-    user@host:~/opt/src/seagull/seagull/trunk/src$ curl --create-dirs -o ~/opt/src/seagull/seagull/trunk/src/external-lib-src/sctplib-1.0.15.tar.gz http://www.sctp.de/download/sctplib-1.0.15.tar.gz
-    user@host:~/opt/src/seagull/seagull/trunk/src$ curl --create-dirs -o ~/opt/src/seagull/seagull/trunk/src/external-lib-src/socketapi-2.2.8.tar.gz http://www.sctp.de/download/socketapi-2.2.8.tar.gz
+If `openssl-devel` is installed, CMake uses the system OpenSSL. Otherwise it builds OpenSSL
+from `external-lib-src/openssl-<version>.tar.gz` (`SEAGULL_OPENSSL_VERSION`, default 3.5.8),
+verified with SHA256. The tarball is not stored in this repository; download it from the
+official release:
 
-Edit build-ext-lib.conf and update the versions of these two libraries ONLY if you downloaded and will use different versions.
+    cd seagull/trunk/src
+    V=3.5.8
+    curl -fL --create-dirs -o external-lib-src/openssl-$V.tar.gz \
+      https://github.com/openssl/openssl/releases/download/openssl-$V/openssl-$V.tar.gz
+    echo "a8f84a39918ec6415ce765d9b429d313ba97b8143169c172e734b9514464f5b2  external-lib-src/openssl-$V.tar.gz" | sha256sum -c
 
-    ...
-    EXTBUILD_1_FILE=sctplib-1.0.15.tar.gz
-    EXTBUILD_1_DIR=sctplib-1.0.15
-    ...
-    EXTBUILD_2_FILE=socketapi-2.2.8.tar.gz
-    EXTBUILD_2_DIR=socketapi-2.2.8
-    ...
+For servers without internet access, download it on another machine and copy it with `scp`
+to `seagull/trunk/src/external-lib-src/`. Building OpenSSL from source requires `perl-core`;
+on small VMs use `cmake --build build -j1` to avoid running out of memory. To use another
+version, set `SEAGULL_OPENSSL_VERSION` and update `URL_HASH` in `CMakeLists.txt`.
 
-### Add TLS Support
+### SCTP
 
-Download the [latest OpenSSL tarball](https://www.openssl.org/source/) to the external-lib-src directory. It was 1.0.2e at the time of writing.
+The SCTP plugin uses the native Linux kernel SCTP (no `sctplib` / `socketapi`); only the
+`<netinet/sctp.h>` header from `lksctp-tools-devel` is needed to build. At runtime the
+`sctp` kernel module must be loaded (no reboot needed; it is blacklisted by default on RHEL):
 
-    user@host:~$ cd ~/opt/src/seagull/seagull/trunk/src
-    user@host:~/opt/src/seagull/seagull/trunk/src$ curl --create-dirs -o ~/opt/src/seagull/seagull/trunk/src/external-lib-src/openssl-1.0.2e.tar.gz https://www.openssl.org/source/openssl-1.0.2e.tar.gz
+    sudo modprobe sctp
+    checksctp            # must print "SCTP supported"
 
-Edit build-ext-lib.conf and update the version of this library ONLY if you downloaded a different version.
+### Tests
 
-    ...
-    EXTBUILD_3_FILE=openssl-1.0.2e.tar.gz
-    EXTBUILD_3_DIR=openssl-1.0.2e
-    ...
+A portable test harness (TCP, TLS 1.3, SCTP, load, sanitizers) is in
+[`seagull/trunk/src/tests`](seagull/trunk/src/tests/README.md). Quick check:
 
-### Build SCTP and TLS Support
-
-Build libraries for SCTP and TLS.
-
-    user@host:~/opt/src/seagull/seagull/trunk/src$ ksh build-ext-lib.ksh
-
-### Build Seagull
-
-First clean up previous build attempts and then build. Upon encountering errors (you shouldn't if you followed these instructions exactly but never say never) fix the error and run these two commands again.
-
-    user@host:~/opt/src/seagull/seagull/trunk/src$ ksh build.ksh -target clean
-    user@host:~/opt/src/seagull/seagull/trunk/src$ ksh build.ksh -target all
+    cd seagull/trunk/src
+    tests/verify.sh "$PWD/build/bin"
 
 ## Install Seagull
 
-I'm assuming Seagull built successfully. Install its binaries by copying files in ~/opt/src/seagull/seagull/trunk/src/bin to /usr/local/bin.
+Copy everything in `build/bin`. The executable and the plugins must stay in the same
+directory (the executable finds them through its `$ORIGIN` RPATH).
 
-    user@host:~/opt/src/seagull/seagull/trunk/src$ sudo cp ~/opt/src/seagull/seagull/trunk/src/bin/* /usr/local/bin
+    sudo cp seagull/trunk/src/build/bin/* /usr/local/bin
 
-Following the lead of [rpm packages](http://sourceforge.net/projects/gull/files/) provided by the official projects, install other required files in the /opt hierarchy.
+Following the lead of [rpm packages](http://sourceforge.net/projects/gull/files/) provided
+by the official project, install the other required files in the /opt hierarchy.
 
-    user@host:~/opt/src/seagull/seagull/trunk/src$ sudo mkdir -p /opt/seagull
-    user@host:~/opt/src/seagull/seagull/trunk/src$ sudo cp -r ~/opt/src/seagull/seagull/trunk/src/exe-env/* /opt/seagull
-    user@host:~/opt/src/seagull/seagull/trunk/src$ sudo chown -R myusername:myusername /opt/seagull
-    user@host:~/opt/src/seagull/seagull/trunk/src$ mkdir -p /opt/seagull/{diameter-env,h248-env,http-env,msrp-env,octcap-env,radius-env,sip-env,synchro-env,xcap-env}/logs
+    sudo mkdir -p /opt/seagull
+    sudo cp -r seagull/trunk/src/exe-env/* /opt/seagull
+    sudo chown -R "$USER":"$USER" /opt/seagull
+    mkdir -p /opt/seagull/{diameter-env,h248-env,http-env,msrp-env,octcap-env,radius-env,sip-env,synchro-env,xcap-env}/logs
 
-To run a client or server, ``cd`` to /opt/seagull/\*/run dirctory and execute any start\*.ksh file. For example, to start a Diameter server
+To run a client or server, `cd` to `/opt/seagull/*/run` and execute any `start*.ksh` file.
+For example, to start a Diameter server:
 
-    user@host:~$ cd /opt/seagull/diameter-env/run
-    user@host:/opt/seagull/diameter-env/run$ ./start_server.ksh
+    cd /opt/seagull/diameter-env/run
+    ./start_server.ksh
 
 ## Build in Docker
+
+> The Dockerfiles in *docker* still use the legacy build (`build.ksh`) and have not been
+> updated for CMake yet.
 
 The README in *docker* directory has more information on how to build Seagull in Docker.
 
