@@ -1156,6 +1156,14 @@ int C_TransIP::resolve_addr(T_pIpAddr P_pIpAddr) {
   freeaddrinfo(L_local_addr);
 #endif
 
+  // Sin origen configurado (source=) en modo TCP: el resultado no se usa
+  // (TCP solo hace bind con puerto de origen; SCTP en modo tcp no hace bind)
+  // y resolver el hostname puede tardar 15-25 s si no esta en /etc/hosts.
+  // En modo udp se conserva: el cliente SCTP hace bind a m_addr_src.
+  if ((P_pIpAddr->m_open_src == NULL) && (m_trans_type == E_SOCKET_TCP_MODE)) {
+    return (0);
+  }
+
   // To be optimized
   L_host              = P_pIpAddr->m_value_src ;
   L_port              = P_pIpAddr->m_port_src  ;
