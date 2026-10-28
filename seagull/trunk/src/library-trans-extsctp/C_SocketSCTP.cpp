@@ -535,6 +535,12 @@ void C_SocketSCTPWithData::sctp_event_handler (C_TransportEvent *P_event) {
       SOCKET_DEBUG(0, "C_SocketSCTPWithData::sctp_event_handler() " <<
 		   "ASSOC PEER: ADDRESS CONFIRMED");
       break;
+#ifdef SCTP_ADDR_PF
+    case SCTP_ADDR_PF:
+      SOCKET_DEBUG(0, "C_SocketSCTPWithData::sctp_event_handler() " <<
+                   "ASSOC PEER: ADDRESS POTENTIALLY FAILED");
+      break;
+#endif
     default:
       SOCKET_DEBUG(0, "C_SocketSCTPWithData::sctp_event_handler() " <<
 		   "ASSOC PEER: UNKNOWN");
