@@ -57,7 +57,7 @@ echo "--- resultado (esperado $CALLS en los cuatro; fallidas 0)"
 echo "cliente: SAR enviados=$A  llamadas exitosas=$B  fallidas=$F"
 echo "servidor: SAR recibidos=$C  SAA enviados=$D"
 echo "cliente termino solo: $DONE; servidor vivo al final: $SALIVE; duracion cliente: ${DUR}s"
-[ "$DUR" -gt 0 ] && echo "tasa efectiva aprox: $((CALLS / DUR)) llamadas/s"
+awk -F';' 'NR==1{for(i=1;i<=NF;i++){if($i=="Rate(P)")p=i; if($i=="ElapsedTime(C)")e=i}; next} $e!=prev && $p>0 {s+=$p; n++; if($p>m)m=$p} {prev=$e} END{if(n) print sprintf("tasa efectiva: media %.0f/s, maxima %.0f/s (%d periodos con trafico)", s/n, m, n); else print "tasa efectiva: sin periodos con trafico"}' "$ST"
 echo "--- errores E/T distintos del cierre normal:"
 grep -hE '\|(E|T)\|' "$OUT"/env/logs/*.log | grep -v 'closed'
 echo "--- informes de sanitizers:"
