@@ -22,24 +22,6 @@ Driven by the need to perform Diameter protocol testing using Seagull on AlmaLin
 While there is still work ahead and this is an ongoing effort, this repository represents a solid first step toward bringing the legacy code up to date with a more modern version of the language. Contributions and feedback are welcome!
 Several legacy commands and configurations originally intended for other Linux distributions have been kept intact, with plans to update and optimize them over time. It is worth emphasizing that this project has been iterated and refined using AlmaLinux 10.2 as the primary target environment.
 
-The primary goal with this repo is to provide patches to the Subversion revision 422 of Seagull to make it build and work on Ubuntu 15.04 and CentOS 7.1 (1503).
-
-Run ``svn info https://svn.code.sf.net/p/gull/code/`` and you'll see the following information that the code hasn't been updated in quite a while.
-
-    Path: code
-    URL: https://svn.code.sf.net/p/gull/code
-    Relative URL: ^/
-    Repository Root: https://svn.code.sf.net/p/gull/code
-    Repository UUID: 9920205e-2714-0410-b6de-9c83873d791f
-    Revision: 422
-    Node Kind: directory
-    Last Changed Author: muralidharbm
-    Last Changed Rev: 422
-    Last Changed Date: 2013-07-03 03:06:53 -0700 (Wed, 03 Jul 2013)
-
-## Directory Structure
-
-Two directories that came directly from the SVN to Git clone are doc and seagull. Everything else was added by me.
 
 ## Build Instructions (CMake)
 
