@@ -155,3 +155,7 @@ The README in *docker* directory has more information on how to build Seagull in
 ## Investigation
 
 If you're interested in how I investigated the build issues read the investigation.rst file.
+
+## Diameter Gx
+
+- [Diameter Gx](seagull/trunk/src/exe-env/diameter-env/README-gx.md): diccionario, escenarios, validacion y pruebas entre VMs.

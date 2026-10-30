@@ -79,19 +79,35 @@ Seagull aborta con `Fatal: Keyboard saved configuration failure`.
 ## Validacion
 
 - Usar `TrafficSuccessfulCall(C)` del CSV de estadisticas.
-- Los `<receive>` no validan Result-Code; para confirmarlo, capture el trafico:
-  ```
-  tshark -r gx.pcap -Y diameter -T fields -e diameter.cmd.code \
-    -e diameter.flags.request -e diameter.CC-Request-Type -e diameter.Result-Code | sort | uniq -c
-  ```
+- El cliente valida `Result-Code = 2001` en CCA-I y CCA-T (`check-value`,
+  behaviour=error): un CCA con 5xxx cuenta como `FailedCall` y `UnexpectedMsg`.
+- Evidencia a nivel de paquete (si el puerto no es 3868, agregar `-d tcp.port==<puerto>,diameter`):
+
+```
+tshark -r gx.pcap -Y diameter -T fields -e diameter.cmd.code -e diameter.flags.request -e diameter.CC-Request-Type -e diameter.Result-Code | sort | uniq -c
+```
 
 | Prueba | Resultado |
 |---|---|
-| Loopback, build C++23 | 20/20, 0 fallos, Result-Code 2001 en las 40 respuestas |
-| Entre VMs AlmaLinux 10.2 (version previa) | 100/100, Result-Code 2001 |
+| Loopback, build C++23 | 20/20, Result-Code 2001 en las 40 respuestas |
+| Loopback, Destination-Host en CCR-T | `pcrf.example.com` en los 20 CCR-T |
+| Loopback, negativa (CCA-T = 5002) | Cliente: 0 exitosas, 20 FailedCall |
+| Loopback, negativa (CCA-I = 5002) | Cliente: 0 exitosas, 20 FailedCall |
+| Loopback, DWR hacia el servidor | 20 DWR / 20 DWA 2001 (`DefaultSuccessfulCall` = 20) |
+| Entre VMs AlmaLinux 10.2, mismo build C++23 | 100/100, 0 fallos; 100 CCR-I/CCA-I y 100 CCR-T/CCA-T con 2001; Destination-Host en los 100 CCR-T |
+
+## Librerias
+
+Los binarios generados con CMake usan `RPATH=$ORIGIN` y cargan las `.so` de su
+propio directorio. `LD_LIBRARY_PATH` solo es necesario en instalaciones con
+`make install`; si las librerias estan en otra ruta:
+
+```
+SEAGULL_LIB_DIR=<ruta> ./start_server_gx.ksh
+```
 
 ## Limitaciones conocidas
 
-- DWR/DWA solo validado sintacticamente (el servidor Seagull no envia DWR).
+- El `<default>` DWR/DWA del cliente no se ha ejercitado (requiere un peer que envie DWR, p. ej. CPS).
 - No hay CCR-U ni RAR/RAA.
-- El temporizador del cliente mide solo CCR-I/CCA-I.
+- El temporizador del cliente mide solo CCR-I/CCA-I (latencia de establecimiento).
