@@ -120,8 +120,11 @@
       <stop-timer> </stop-timer>
       <store name="sid" entity="Session-Id"> </store>
       <store name="pcrf" entity="Origin-Host"> </store>
+      <check-value name="Result-Code" behaviour="error"> </check-value>
     </action>
-    <command name="CCA"> </command>
+    <command name="CCA">
+      <avp name="Result-Code" value="2001"> </avp>
+    </command>
   </receive>
 
   <!-- CCR-Termination: mismo Session-Id, dirigido al mismo PCRF -->
@@ -149,7 +152,12 @@
 
   <!-- CCA-Termination -->
   <receive channel="channel-1">
-    <command name="CCA"> </command>
+    <command name="CCA">
+      <avp name="Result-Code" value="2001"> </avp>
+    </command>
+    <action>
+      <check-value name="Result-Code" behaviour="error"> </check-value>
+    </action>
   </receive>
 </traffic>
 
