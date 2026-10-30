@@ -22,6 +22,16 @@ Driven by the need to perform Diameter protocol testing using Seagull on AlmaLin
 While there is still work ahead and this is an ongoing effort, this repository represents a solid first step toward bringing the legacy code up to date with a more modern version of the language. Contributions and feedback are welcome!
 Several legacy commands and configurations originally intended for other Linux distributions have been kept intact, with plans to update and optimize them over time. It is worth emphasizing that this project has been iterated and refined using AlmaLinux 10.2 as the primary target environment.
 
+## Origin
+
+The `doc/` and `seagull/` directories come from the original Seagull Subversion repository (trunk, later than the 1.8.2 release) and were imported into Git without changes. Everything else (CMake build, test harness, Diameter Gx support and fixes) was added afterwards as part of this modernization effort.
+
+The original code is licensed under the GNU General Public License v2 or later, (c) 2006 Hewlett-Packard Development Company, LP. The last upstream revision is 422:
+
+    URL: https://svn.code.sf.net/p/gull/code
+    Revision: 422
+    Last Changed Author: muralidharbm
+    Last Changed Date: 2013-07-03 03:06:53 -0700 (Wed, 03 Jul 2013)
 
 ## Build Instructions (CMake)
 
