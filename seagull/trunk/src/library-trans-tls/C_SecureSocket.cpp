@@ -188,7 +188,7 @@ int C_SecureSocketServer::_secure_mode () {
   
   L_result = SSL_accept(m_ssl) ;
 
-  if (L_result < 0 ) {
+  if (L_result <= 0 ) {
     if (ssl_want_io(m_ssl, L_result)) {
       m_state = E_SOCKET_STATE_INPROGESS ;
       L_ret = 0 ;
@@ -287,7 +287,7 @@ int C_SecureSocketClient::_secure_mode() {
   SSL_set_bio(m_ssl,m_bio,m_bio);
   
   L_result = SSL_connect(m_ssl) ;
-  if ( L_result < 0 ) {
+  if ( L_result <= 0 ) {
     if (ssl_want_io(m_ssl, L_result)) {
       m_state = E_SOCKET_STATE_INPROGESS ;
       L_ret = 0 ;
@@ -324,7 +324,7 @@ C_Socket* C_SecureSocketClient::process_fd_in_progess (fd_set* P_rSet,
 
   if (ssl_fd_ready(m_ssl, m_socket_id, P_rSet, P_wSet)) {
     L_result = SSL_connect(m_ssl) ;
-    if ( L_result < 0 ) {
+    if ( L_result <= 0 ) {
       if (ssl_want_io(m_ssl, L_result)) {
         P_event->m_type = C_TransportEvent::E_TRANS_NO_EVENT ;
       } else {
@@ -348,7 +348,7 @@ C_Socket* C_SecureSocketServer::process_fd_in_progess (fd_set* P_rSet,
 
   if (ssl_fd_ready(m_ssl, m_socket_id, P_rSet, P_wSet)) {
     L_result = SSL_accept(m_ssl) ;
-    if ( L_result < 0 ) {
+    if ( L_result <= 0 ) {
       if (ssl_want_io(m_ssl, L_result)) {
         P_event->m_type = C_TransportEvent::E_TRANS_NO_EVENT ;
       } else {
