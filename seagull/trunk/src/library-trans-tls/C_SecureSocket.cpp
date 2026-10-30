@@ -159,6 +159,20 @@ int C_SecureSocketServer::_call_read() {
   return (L_result) ;
 }
 
+// Handshake TLS no bloqueante: WANT_READ y WANT_WRITE significan "reintentar",
+// no error. Con connect() en EINPROGRESS, SSL_connect() devuelve WANT_WRITE.
+static inline bool ssl_want_io(SSL *P_ssl, int P_result) {
+  int L_err = SSL_get_error(P_ssl, P_result);
+  return ((L_err == SSL_ERROR_WANT_READ) || (L_err == SSL_ERROR_WANT_WRITE));
+}
+
+// Continuar el handshake si el socket es legible, o escribible cuando
+// OpenSSL lo haya pedido (evita llamadas inutiles mientras espera lectura).
+static inline bool ssl_fd_ready(SSL *P_ssl, int P_fd, fd_set *P_rSet, fd_set *P_wSet) {
+  if (FD_ISSET(P_fd, P_rSet)) return (true);
+  return ((P_wSet != NULL) && FD_ISSET(P_fd, P_wSet) && SSL_want_write(P_ssl));
+}
+
 int C_SecureSocketServer::_secure_mode () {
  
   int L_result ;
@@ -175,7 +189,7 @@ int C_SecureSocketServer::_secure_mode () {
   L_result = SSL_accept(m_ssl) ;
 
   if (L_result < 0 ) {
-    if (SSL_get_error(m_ssl, L_result) == SSL_ERROR_WANT_READ) {
+    if (ssl_want_io(m_ssl, L_result)) {
       m_state = E_SOCKET_STATE_INPROGESS ;
       L_ret = 0 ;
     } else {
@@ -274,7 +288,7 @@ int C_SecureSocketClient::_secure_mode() {
   
   L_result = SSL_connect(m_ssl) ;
   if ( L_result < 0 ) {
-    if (SSL_get_error(m_ssl, L_result) == SSL_ERROR_WANT_READ) {
+    if (ssl_want_io(m_ssl, L_result)) {
       m_state = E_SOCKET_STATE_INPROGESS ;
       L_ret = 0 ;
     } else {
@@ -308,10 +322,10 @@ C_Socket* C_SecureSocketClient::process_fd_in_progess (fd_set* P_rSet,
   C_Socket* L_socket = NULL ;
   int       L_result        ;
 
-  if (FD_ISSET(m_socket_id, P_rSet)) {
+  if (ssl_fd_ready(m_ssl, m_socket_id, P_rSet, P_wSet)) {
     L_result = SSL_connect(m_ssl) ;
     if ( L_result < 0 ) {
-      if (SSL_get_error(m_ssl, L_result) == SSL_ERROR_WANT_READ) {
+      if (ssl_want_io(m_ssl, L_result)) {
         P_event->m_type = C_TransportEvent::E_TRANS_NO_EVENT ;
       } else {
         P_event->m_type = C_TransportEvent::E_TRANS_OPEN_FAILED ;
@@ -332,10 +346,10 @@ C_Socket* C_SecureSocketServer::process_fd_in_progess (fd_set* P_rSet,
   C_Socket* L_socket = NULL ;
   int       L_result        ;
 
-  if (FD_ISSET(m_socket_id, P_rSet)) {
+  if (ssl_fd_ready(m_ssl, m_socket_id, P_rSet, P_wSet)) {
     L_result = SSL_accept(m_ssl) ;
     if ( L_result < 0 ) {
-      if (SSL_get_error(m_ssl, L_result) == SSL_ERROR_WANT_READ) {
+      if (ssl_want_io(m_ssl, L_result)) {
         P_event->m_type = C_TransportEvent::E_TRANS_NO_EVENT ;
       } else {
         P_event->m_type = C_TransportEvent::E_TRANS_OPEN_FAILED ;
