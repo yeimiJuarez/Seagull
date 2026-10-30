@@ -95,6 +95,11 @@ tshark -r gx.pcap -Y diameter -T fields -e diameter.cmd.code -e diameter.flags.r
 | Loopback, negativa (CCA-I = 5002) | Cliente: 0 exitosas, 20 FailedCall |
 | Loopback, DWR hacia el servidor | 20 DWR / 20 DWA 2001 (`DefaultSuccessfulCall` = 20) |
 | Entre VMs AlmaLinux 10.2, mismo build C++23 | 100/100, 0 fallos; 100 CCR-I/CCA-I y 100 CCR-T/CCA-T con 2001; Destination-Host en los 100 CCR-T |
+| Loopback, TLS 1.2 y TLS 1.3 (`OPENSSL_CONF`) | 20/20 en cada version; negativa TLS 1.3 (CCA-T = 5002): 0 exitosas |
+| Loopback, TLS 1.2 y 1.3 con `netem` 20 ms | 20/20 (antes del arreglo `1b57a09`: 0/0, `SSL_ERROR_WANT_WRITE`) |
+| Entre VMs, TLS 1.2 y 1.3 (OpenSSL 3.5.8 / 3.5.5) | 100/100 en 6 corridas; 0 mensajes Diameter en claro |
+| Loopback, SCTP nativo | 20/20; negativa 0 exitosas; Destination-Host en los 20 CCR-T |
+| Entre VMs, SCTP nativo | 100/100; negativa 0 exitosas, 100 FailedCall; Destination-Host en los 100 CCR-T |
 
 ## Librerias
 
@@ -106,8 +111,50 @@ propio directorio. `LD_LIBRARY_PATH` solo es necesario en instalaciones con
 SEAGULL_LIB_DIR=<ruta> ./start_server_gx.ksh
 ```
 
+## Transportes TLS y SCTP
+
+Los mismos `base_gx.xml` y `gx-ccr-cca.*.xml` funcionan sobre TCP, TLS y SCTP;
+solo cambia el archivo `conf`.
+
+### TLS
+
+- Usar `conf.server-tls.xml` / `conf.client-tls.xml` y reemplazar en `init-args`
+  `cert_chain_file`, `private_key_file` y `passwd`.
+- Ambos lados deben usar el mismo certificado (cada lado lo carga tambien como CA).
+- `method=SSLv23` negocia la version mas alta comun. Para fijarla, usar un archivo
+  de configuracion de OpenSSL:
+
+```
+[system_default_sect]
+MinProtocol = TLSv1.2
+MaxProtocol = TLSv1.2
+```
+
+  y lanzar con `OPENSSL_CONF=<archivo> seagull ...`.
+- Wireshark asocia el puerto 3868 a Diameter sobre TCP: usar
+  Decode As TCP port 3868 (o el que corresponda) como TLS.
+- Solo TLS 1.2 con intercambio RSA (por ejemplo `CipherString = AES256-GCM-SHA384`)
+  se puede descifrar con la clave privada. TLS 1.3 usa claves efimeras.
+
+### SCTP
+
+- Compilar con `-DSEAGULL_BUILD_SCTP=ON` (genera `libtrans_extsctp.so`; usa el
+  SCTP del kernel, sin depender de lksctp-tools en ejecucion).
+- Cargar el modulo en ambas maquinas: `sudo modprobe sctp`.
+- Generar los `conf` SCTP a partir de los de TCP:
+
+```
+sed -e 's|libtrans_ip.so|libtrans_extsctp.so|' -e 's|create_cipio_instance|create_cipsctpio_instance|' -e 's|delete_cipio_instance|delete_cipsctpio_instance|' conf.server.xml > conf.server-sctp.xml
+```
+
+- Abrir el puerto como SCTP: `sudo firewall-cmd --add-port=<puerto>/sctp`.
+- Para ver si el servidor escucha: `cat /proc/net/sctp/eps`
+  (`ss -S` necesita el modulo `sctp_diag`).
+- Si el puerto no es 3868, en Wireshark/tshark: `-d sctp.port==<puerto>,diameter`.
+
 ## Limitaciones conocidas
 
 - El `<default>` DWR/DWA del cliente no se ha ejercitado (requiere un peer que envie DWR, p. ej. CPS).
 - No hay CCR-U ni RAR/RAA.
 - El temporizador del cliente mide solo CCR-I/CCA-I (latencia de establecimiento).
+- TLS: sin `crl_file` en `init-args`, Seagull cifra pero no verifica el certificado del peer (SSL_VERIFY_NONE). Con `crl_file` exige certificado y lo valida contra `cert_chain_file`.
