@@ -703,6 +703,8 @@ C_SocketSCTPWithData* C_SocketSCTPWithData::process_fd_set (fd_set           *P_
                                                             C_TransportEvent *P_event) {
 
   SOCKET_DEBUG(0, "C_SocketSCTPWithData::process_fd_set() id=" << m_socket_id);
+  // control de flujo: vaciar la cola de escritura (ver C_SocketWithData)
+  if (m_state == E_SOCKET_STATE_READY) process_pending_write(P_rSet, P_wSet);
 
   switch (m_state) {
 

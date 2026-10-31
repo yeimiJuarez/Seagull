@@ -173,6 +173,19 @@ static inline bool ssl_fd_ready(SSL *P_ssl, int P_fd, fd_set *P_rSet, fd_set *P_
   return ((P_wSet != NULL) && FD_ISSET(P_fd, P_wSet) && SSL_want_write(P_ssl));
 }
 
+// SSL_write no bloqueante: WANT_READ/WANT_WRITE se devuelven como EAGAIN para
+// que C_SocketWithData encole los datos y reintente. Cualquier otro resultado
+// (incluido 0) es un error de la conexion.
+static int ssl_write_status(C_SecureSocket *P_sock, SSL *P_ssl, int P_result) {
+  if (ssl_want_io(P_ssl, P_result)) {
+    errno = EAGAIN ;
+    return (-1) ;
+  }
+  P_sock->ssl_error(P_result) ;
+  errno = ECONNRESET ;
+  return (-1) ;
+}
+
 int C_SecureSocketServer::_secure_mode () {
  
   int L_result ;
@@ -219,7 +232,7 @@ int C_SecureSocketServer::_call_write(unsigned char* P_data,
   
   int L_result = 0 ;
   L_result = SSL_write(m_ssl,P_data,P_size);
-  if (L_result < 0) ssl_error(L_result) ;
+  if (L_result <= 0) return (ssl_write_status(this, m_ssl, L_result)) ;
   return (L_result) ;
 
 }
@@ -268,7 +281,7 @@ int C_SecureSocketClient::_call_write(unsigned char* P_data,
 				      size_t P_size) {
   int L_result = 0 ;
   L_result = SSL_write(m_ssl,P_data,P_size);
-  if (L_result < 0) ssl_error(L_result) ;
+  if (L_result <= 0) return (ssl_write_status(this, m_ssl, L_result)) ;
   
   return (L_result) ;
 }
