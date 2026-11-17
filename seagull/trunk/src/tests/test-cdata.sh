@@ -1,11 +1,10 @@
 #!/bin/bash
 # uso: test-cdata.sh <dir-binarios-con-ASan> <dir-salida>
 # Prueba el elemento CDATA de los escenarios (create_new_message):
+# Cualquier informe de ASan, LSan o UBSan es un fallo: la ruta de error de carga ya no filtra memoria.
 #   value="zz"        -> error "Bad hexadecimal buffer", sin caida
 #   CDATA sin value   -> error "value is mandatory for [CDATA]", sin caida
 #   hexadecimal valido -> LSan no debe informar de convert_hexa_char_to_bin
-# La carga fallida de un escenario deja fugas previas ajenas a CDATA, por eso el
-# criterio de fuga es la ausencia de ese simbolo y no un informe limpio.
 . "$(dirname "${0}")/lib.sh"
 : "${LSAN_OPTIONS:=suppressions=$HERE/lsan.supp}"
 export LSAN_OPTIONS
@@ -39,7 +38,7 @@ mk() {
 
 run() {
   ( cd "$OUT/env/run" && timeout -s TERM 20 "$BIN/seagull" -conf ../config/conf.client.xml -scen ../scenario/$1.client.xml -log ../logs/$1.log -dico ../config/base_cx.xml -llevel ET < /dev/null > ../logs/$1.out 2>&1 )
-  if grep -q -E 'ERROR: AddressSanitizer|runtime error' "$OUT/env/logs/$1.out"; then
+  if grep -q -E 'ERROR: (Address|Leak)Sanitizer|runtime error' "$OUT/env/logs/$1.out"; then
     fallo "$1: informe de ASan/UBSan (ver $OUT/env/logs/$1.out)"
   fi
 }
