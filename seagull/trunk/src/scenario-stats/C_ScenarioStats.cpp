@@ -54,6 +54,12 @@ C_ScenarioStats::C_ScenarioStats(C_Scenario *P_scen) {
 
   // extract ethe end of scenario
   m_scenario = P_scen ;
+  m_counter_cmd_table         = NULL    ;
+  m_nb_command                = 0       ;
+  m_current_scen_stat_id      = -1      ;
+  m_nb_stat_scen_id           = 0       ;
+  m_current_scen_stat_table   = NULL    ;
+  m_current_scen_stat_display = nullptr ;
 
   if (m_scenario->m_sequence_max > 1) {
     m_nb_command =  m_scenario->m_sequence_max - 1;

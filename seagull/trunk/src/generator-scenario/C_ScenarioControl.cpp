@@ -636,6 +636,11 @@ int C_ScenarioControl::add_scenario
 
   if (m_config->get_display_scenario_stat() == true) {
     NEW_VAR(L_current_stat, C_ScenarioStats(L_current_scen));
+    if (L_current_scen->get_stats() == NULL) {
+      // the constructor rejects a scenario without commands and does not attach
+      // itself to it: nobody else would release this object
+      DELETE_VAR(L_current_stat);
+    }
   }
 
   GEN_DEBUG(1, "C_ScenarioControl::add_scenario() end");
