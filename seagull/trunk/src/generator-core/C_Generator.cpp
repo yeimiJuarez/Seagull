@@ -111,6 +111,7 @@ C_Generator::C_Generator(cmd_line_pt P_cmd_line) : C_TaskControl() {
   m_cmd_line_values = P_cmd_line->m_args;
 
   m_xml_data = NULL ;
+  m_config = NULL ;
 
   m_do_display_control = false ;
   m_display_control = NULL ;
@@ -188,6 +189,9 @@ C_Generator::~C_Generator() {
   DELETE_VAR(m_display_traffic);
   DELETE_VAR(m_display_rtime);
   DELETE_VAR(m_display_help);
+
+  // normally released by EndProcedure(); when init() fails EndProcedure() never runs
+  DELETE_VAR(m_config);
 
   m_display_period = 0 ;
 
