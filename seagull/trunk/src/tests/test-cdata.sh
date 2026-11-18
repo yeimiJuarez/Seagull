@@ -1,10 +1,12 @@
 #!/bin/bash
 # uso: test-cdata.sh <dir-binarios-con-ASan> <dir-salida>
-# Prueba el elemento CDATA de los escenarios (create_new_message):
-# Cualquier informe de ASan, LSan o UBSan es un fallo: la ruta de error de carga ya no filtra memoria.
-#   value="zz"        -> error "Bad hexadecimal buffer", sin caida
-#   CDATA sin value   -> error "value is mandatory for [CDATA]", sin caida
-#   hexadecimal valido -> LSan no debe informar de convert_hexa_char_to_bin
+# Prueba el elemento CDATA de los escenarios (create_new_message), con ASan/LSan/UBSan:
+#   value="zz"         -> error "Bad hexadecimal buffer", sin caida
+#   CDATA sin value    -> error "value is mandatory for [CDATA]", sin caida
+#   hexadecimal valido -> el buffer de CDATA no se filtra
+# Cualquier informe de ASan, LSan o UBSan es un fallo: la ruta de error de carga no filtra memoria.
+# Opcional: DISPLAY_SCEN_STAT=true|false fija display-scenario-stat en conf.client.xml
+# (con true se crea C_ScenarioStats y, si el escenario es invalido, add_scenario() debe liberarlo).
 . "$(dirname "${0}")/lib.sh"
 : "${LSAN_OPTIONS:=suppressions=$HERE/lsan.supp}"
 export LSAN_OPTIONS
@@ -16,6 +18,10 @@ if ! ldd "$BIN/seagull" | grep -q libasan; then
   echo "RESULTADO: FALLO (el binario no tiene ASan; la prueba no seria valida)"; exit 1
 fi
 prepare_env "$OUT"
+if [ -n "${DISPLAY_SCEN_STAT:-}" ]; then
+  L='  <define entity="traffic-param" name="display-scenario-stat" value="'"$DISPLAY_SCEN_STAT"'"></define>'
+  awk -v l="$L" 'index($0,"</configuration>"){print l} {print}' "$OUT/env/config/conf.client.xml" > "$OUT/env/config/conf.client.xml.new" && mv "$OUT/env/config/conf.client.xml.new" "$OUT/env/config/conf.client.xml"
+fi
 export LD_LIBRARY_PATH="$BIN"
 HEXOK=0100002480000118000000000000000100000001000001084000000f73656167756c6c00
 NERR=0
@@ -39,7 +45,7 @@ mk() {
 run() {
   ( cd "$OUT/env/run" && timeout -s TERM 20 "$BIN/seagull" -conf ../config/conf.client.xml -scen ../scenario/$1.client.xml -log ../logs/$1.log -dico ../config/base_cx.xml -llevel ET < /dev/null > ../logs/$1.out 2>&1 )
   if grep -q -E 'ERROR: (Address|Leak)Sanitizer|runtime error' "$OUT/env/logs/$1.out"; then
-    fallo "$1: informe de ASan/UBSan (ver $OUT/env/logs/$1.out)"
+    fallo "$1: informe de ASan/LSan/UBSan (ver $OUT/env/logs/$1.out)"
   fi
 }
 

@@ -63,6 +63,8 @@ if grep -q 'TODO OK' "$D/crypto.log"; then ok "validate-crypto.sh"; else fail "v
 if grep -q 'test_bufferutils: OK' "$D/bufferutils.log"; then ok "unit/test_bufferutils (ASan/UBSan)"; else fail "unit/test_bufferutils (ver $D/bufferutils.log)"; fi
 "$HERE/test-cdata.sh" "$SRC/build-asan/bin" "$D/out-cdata" > "$D/cdata.log" 2>&1
 if grep -q 'RESULTADO: OK' "$D/cdata.log"; then ok "test-cdata (ASan/LSan)"; else fail "test-cdata (ver $D/cdata.log)"; fi
+DISPLAY_SCEN_STAT=false "$HERE/test-cdata.sh" "$SRC/build-asan/bin" "$D/out-cdata-nostat" > "$D/cdata-nostat.log" 2>&1
+if grep -q 'RESULTADO: OK' "$D/cdata-nostat.log"; then ok "test-cdata sin estadisticas de escenario"; else fail "test-cdata sin estadisticas de escenario (ver $D/cdata-nostat.log)"; fi
 
 stage "3. Diameter TCP con ASan, comparado con la referencia gnu++98"
 "$HERE/verify.sh" "$SRC/build-asan/bin" "$D/out-tcp-asan" > "$D/tcp-asan.log" 2>&1
