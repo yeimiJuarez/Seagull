@@ -4,6 +4,7 @@
 #   value="zz"         -> error "Bad hexadecimal buffer", sin caida
 #   CDATA sin value    -> error "value is mandatory for [CDATA]", sin caida
 #   hexadecimal valido -> el buffer de CDATA no se filtra
+#   <init behaviour="..."> -> error "Behavior feature is not allowed on scenario init", sin fugas
 # Cualquier informe de ASan, LSan o UBSan es un fallo: la ruta de error de carga no filtra memoria.
 # Opcional: DISPLAY_SCEN_STAT=true|false fija display-scenario-stat en conf.client.xml
 # (con true se crea C_ScenarioStats y, si el escenario es invalido, add_scenario() debe liberarlo).
@@ -65,5 +66,23 @@ run cdata-ok
 if grep -q 'convert_hexa_char_to_bin' "$OUT/env/logs/cdata-ok.out"; then
   fallo "cdata-ok: fuga del buffer de CDATA (convert_hexa_char_to_bin en el informe de LSan)"
 fi
+
+cat > "$OUT/env/scenario/cdata-init.client.xml" <<'XML'
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<scenario>
+<init behaviour="failed">
+  <send channel="channel-1">
+    <CDATA value="00"></CDATA>
+  </send>
+</init>
+<traffic>
+  <send channel="channel-1">
+    <CDATA value="00"></CDATA>
+  </send>
+</traffic>
+</scenario>
+XML
+run cdata-init
+grep -q -F 'Behavior feature is not allowed on scenario init' "$OUT/env/logs/cdata-init.log" || fallo "cdata-init: falta el mensaje 'Behavior feature is not allowed on scenario init'"
 
 if [ "$NERR" -eq 0 ]; then echo "RESULTADO: OK"; else echo "RESULTADO: FALLO ($NERR)"; exit 1; fi

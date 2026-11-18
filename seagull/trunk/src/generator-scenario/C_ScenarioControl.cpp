@@ -489,6 +489,8 @@ int C_ScenarioControl::add_scenario
     if (L_behaviour_scen != NULL) {
       GEN_ERROR(E_GEN_FATAL_ERROR, "Behavior feature is not allowed on scenario init");
       L_ret = -1 ;
+      FREE_TABLE(L_add_map_inserted);
+      FREE_TABLE(L_channel_usage);
       return (L_ret);
     }
 
