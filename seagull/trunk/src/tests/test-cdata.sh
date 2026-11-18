@@ -19,8 +19,10 @@ if ! ldd "$BIN/seagull" | grep -q libasan; then
 fi
 prepare_env "$OUT"
 if [ -n "${DISPLAY_SCEN_STAT:-}" ]; then
+  # set_value() ignora "false" (no asigna), asi que hay que quitar el define existente
+  C="$OUT/env/config/conf.client.xml"
   L='  <define entity="traffic-param" name="display-scenario-stat" value="'"$DISPLAY_SCEN_STAT"'"></define>'
-  awk -v l="$L" 'index($0,"</configuration>"){print l} {print}' "$OUT/env/config/conf.client.xml" > "$OUT/env/config/conf.client.xml.new" && mv "$OUT/env/config/conf.client.xml.new" "$OUT/env/config/conf.client.xml"
+  grep -v -F 'name="display-scenario-stat"' "$C" | awk -v l="$L" 'index($0,"</configuration>"){print l} {print}' > "$C.new" && mv "$C.new" "$C"
 fi
 export LD_LIBRARY_PATH="$BIN"
 HEXOK=0100002480000118000000000000000100000001000001084000000f73656167756c6c00
