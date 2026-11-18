@@ -39,9 +39,13 @@ if ss -ltn | grep -q ':3868 '; then fail "puerto 3868 ocupado"; else ok "puerto 
 for f in "$HERE/unit/test_auth.c" "$HERE/unit/test_radius.cpp" "$HERE/unit/test_bufferutils.cpp" "$HERE/unit/build-test-bufferutils.sh" "$HERE/test-cdata.sh" "$CERTS/cert.pem" "$CERTS/key.pem" "$HERE/run-diameter.sh" "$HERE/run-diameter-tls.sh" "$HERE/run-diameter-sctp.sh" "$HERE/run-diameter-load.sh" "$HERE/verify.sh" "$HERE/resumen.sh" "$HERE/validate-crypto.sh" "$EXPECTED/client.txt" "$EXPECTED/server.txt"; do
   if [ -f "$f" ]; then ok "existe $(basename "$f")"; else fail "falta $f"; fi
 done
-echo "  git HEAD: $(git log --oneline -n 1)"
-n=$(git status --short | wc -l)
-if [ "$n" = 0 ]; then ok "arbol de git limpio"; else warn "$n archivos sin confirmar: se prueba codigo sin commit"; fi
+if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+  echo "  git HEAD: $(git log --oneline -n 1)"
+  n=$(git status --short | wc -l)
+  if [ "$n" = 0 ]; then ok "arbol de git limpio"; else warn "$n archivos sin confirmar: se prueba codigo sin commit"; fi
+else
+  warn "no hay repositorio git (o git no esta instalado): no se puede comprobar el estado del arbol"
+fi
 
 stage "1. Compilacion desde cero"
 build build-werror     -DCMAKE_BUILD_TYPE=Debug -DSEAGULL_WERROR=ON
