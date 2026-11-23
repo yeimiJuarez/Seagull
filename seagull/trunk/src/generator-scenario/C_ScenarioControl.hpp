@@ -248,6 +248,7 @@ private:
 
   int                m_nb_channel          ;
   T_pCharList        m_correl_name_list    ;
+  T_pCharList        m_pattern_buffers     ; // buffers de fill-pattern: no los posee ninguna accion
   
   
   T_pRetrieveIdsDef  m_retrieve_id_table ;

@@ -111,6 +111,7 @@ C_ScenarioControl::C_ScenarioControl(C_ProtocolControl  *P_protocol_control,
   m_correlation_section = false ;
 
   NEW_VAR (m_correl_name_list, T_CharList);
+  NEW_VAR (m_pattern_buffers, T_CharList);
   m_correl_name_list->clear();
  
   NEW_VAR(m_counter_map, T_CounterMap()) ;
@@ -231,6 +232,16 @@ C_ScenarioControl::~C_ScenarioControl() {
     m_post_action_map->erase(m_post_action_map->begin(), m_post_action_map->end());
   }
   DELETE_VAR(m_post_action_map);
+
+  if (!m_pattern_buffers->empty()) {
+    for (T_CharList::iterator L_pit = m_pattern_buffers->begin();
+         L_pit != m_pattern_buffers->end();
+         L_pit++) {
+      free(*L_pit);
+    }
+    m_pattern_buffers->erase(m_pattern_buffers->begin(), m_pattern_buffers->end());
+  }
+  DELETE_VAR(m_pattern_buffers);
 
 }
 
@@ -1590,6 +1601,9 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
                   break;
                 } else {
                   L_actionData -> m_pattern_size = L_res_size ;	  
+                  if (L_actionData -> m_pattern != NULL) {
+                    m_pattern_buffers->push_back((char*)L_actionData -> m_pattern);
+                  }
                 }
                 
               } else { // direct string value
