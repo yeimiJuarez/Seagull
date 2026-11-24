@@ -102,6 +102,9 @@ typedef struct _struct_string_express {
   T_pStringValue m_portions ;
 } T_StringExpression, *T_pStringExpression ;
 
+// tamano maximo (bytes) de un valor construido por set-value, incluido fill-size
+#define SET_VALUE_MAX_SIZE 250
+
 typedef struct _xml_cmd_action {
   T_action_type       m_type            ;
   char               *m_args            ;

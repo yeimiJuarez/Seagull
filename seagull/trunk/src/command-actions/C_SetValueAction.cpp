@@ -21,6 +21,7 @@
 #include "GeneratorTrace.hpp"
 #include "GeneratorError.h"
 #include "C_ScenarioControl.hpp"
+#include "BufferUtils.hpp"
 
 
 
@@ -59,7 +60,7 @@ T_ValueData  C_SetValueAction::search_memory(T_pCallContext  P_callCtxt,
   size_t              L_size, L_current_size       ;
 
   static char         L_tmp_string [250]           ;
-  static char         L_tmp_string_filled [250]    ;
+  static char         L_tmp_string_filled [SET_VALUE_MAX_SIZE]    ;
 
 
 ///////////////////////////////////
@@ -139,19 +140,12 @@ T_ValueData  C_SetValueAction::search_memory(T_pCallContext  P_callCtxt,
 
 
     if (m_size != -1) {
-      if (m_size > (int)L_size) {
-        int L_filled_size = m_size - L_size ;
-        int L_fill_idx = 0 ;
-        memcpy(L_tmp_string_filled+L_filled_size,
-               L_tmp_string,
-               L_size);
-
-        while ((L_fill_idx+(m_pattern_size)) > L_filled_size) {
-          memcpy(L_tmp_string_filled+L_fill_idx,
-                 m_pattern,
-                 m_pattern_size);
-          L_fill_idx += m_pattern_size ;
-        }
+      if ((m_size > (int)L_size) && (m_size <= SET_VALUE_MAX_SIZE)) {
+        int L_gap = m_size - L_size ;
+        fill_with_pattern((unsigned char*)L_tmp_string_filled, L_gap,
+                          m_pattern,
+                          (m_pattern_size > 0) ? (size_t)m_pattern_size : 0) ;
+        memcpy(L_tmp_string_filled+L_gap, L_tmp_string, L_size);
         L_mem.m_value.m_val_binary.m_size = m_size ;
         L_mem.m_value.m_val_binary.m_value
           = (unsigned char *) L_tmp_string_filled;

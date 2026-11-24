@@ -57,6 +57,47 @@ static const T_CmdAction no_cmd_action = {
   NULL,
   E_NOTHING_TYPE
 } ;
+
+// Libera lo que add_actions() asigno para una accion que NO llego a la
+// fabrica (ruta de error). En la ruta de exito la accion creada es duena de
+// m_string_expr / m_regexp_data. m_pattern lo posee m_pattern_buffers y
+// m_args / m_branch_on apuntan a datos del XML: no se liberan aqui.
+static void release_unused_cmd_action (T_pCmdAction P_data) {
+  if (P_data == NULL) { return ; }
+
+  if (P_data->m_string_expr != NULL) {
+    if (P_data->m_string_expr->m_portions != NULL) {
+      for (size_t L_i = 0;
+           L_i < (size_t)P_data->m_string_expr->m_nb_portion;
+           L_i++) {
+        T_pStringValue L_portion = &P_data->m_string_expr->m_portions[L_i];
+        if ((L_portion->m_type == E_STR_STATIC) &&
+            (L_portion->m_data.m_value != NULL)) {
+          FREE_TABLE(L_portion->m_data.m_value);
+        }
+      }
+      FREE_TABLE(P_data->m_string_expr->m_portions);
+    }
+    FREE_VAR(P_data->m_string_expr);
+  }
+
+  if (P_data->m_regexp_data != NULL) {
+    DELETE_VAR(P_data->m_regexp_data);
+  }
+  FREE_VAR(P_data);
+}
+
+// Borra las acciones (objetos C_CommandAction) que aun posee una lista local.
+static void delete_action_list (T_CommandActionLst& P_list) {
+  T_CommandActionLst::iterator L_it ;
+  for (L_it = P_list.begin(); L_it != P_list.end(); L_it++) {
+    DELETE_VAR(*L_it);
+  }
+  if (!P_list.empty()) {
+    P_list.erase(P_list.begin(), P_list.end());
+  }
+}
+
   
 C_ScenarioControl::C_ScenarioControl(C_ProtocolControl  *P_protocol_control,
 				     C_TransportControl *P_transport_control,
@@ -1126,6 +1167,13 @@ int C_ScenarioControl::add_command (T_cmd_type                P_cmd_type,
     }
   }
 
+  if (L_ret == -1) {
+    // en exito add_actions ya movio las acciones a las tablas y vacio las
+    // listas; si hay error siguen aqui y nadie mas las libera
+    delete_action_list(L_commandActionList);
+    delete_action_list(L_commandActionLabelList);
+  }
+
   GEN_DEBUG(1, "C_ScenarioControl::add_command() end");
   if (m_correlation_section == false) {
     if (L_map_inserted == true) { P_map_inserted[L_channel_id] = true ; }
@@ -1625,6 +1673,13 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
                 L_ret = -1 ;
                 break ;
               } else {
+                if (L_size > SET_VALUE_MAX_SIZE) {
+                  GEN_ERROR(E_GEN_FATAL_ERROR, "fill-size ["
+                            << L_actionArg2 << "] greater than the maximum ["
+                            << SET_VALUE_MAX_SIZE << "]");
+                  L_ret = -1 ;
+                  break ;
+                }
                 L_actionData->m_size = (int)L_size ;
               }
             } 
@@ -2745,6 +2800,10 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
               P_nb_action++ ;
             }
           } // if (L_actionType == E_ACTION_SCEN_LOG)
+	} else {
+          // ruta de error: la accion nunca llego a la fabrica
+          release_unused_cmd_action(L_actionData);
+          L_actionData = NULL ;
 	} // if (L_ret != -1)
       } else {
 	GEN_ERROR(E_GEN_FATAL_ERROR, "Unknown action name [" << L_actionName << "]");
