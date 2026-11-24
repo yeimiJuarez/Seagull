@@ -26,6 +26,7 @@ Antes de cada sesión: `export LC_ALL=C` (los scripts buscan `warning:` en ingl�
 | `resumen.sh` | Extrae los contadores finales de un CSV de protocolo |
 | `expected/` | Referencia gnu++98 en texto (cliente y servidor) |
 | `unit/` | Pruebas unitarias de crypto (Radius, Digest RFC 2617) y de BufferUtils (build-test-bufferutils.sh, ASan/UBSan) |
+| `test-errorpaths.sh` | Rutas de error de fill-size/fill-pattern en la carga del escenario (ASan/LSan, sin servidor) |
 | `lsan.supp` | Supresiones de LeakSanitizer (vacío a propósito: sin supresiones activas) |
 
 El entorno de cada corrida se genera copiando `exe-env/diameter-env` (que **no se
