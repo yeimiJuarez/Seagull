@@ -4583,10 +4583,11 @@ void C_ScenarioControl::delete_correlation_map(T_pCommandActionMap *P_action_map
                                  L_commandActionLst.end());
       }
     }
-    if (!(*P_action_map)->empty()) {
-      (*P_action_map)->erase((*P_action_map)->begin(), (*P_action_map)->end());
-    }
   } // for (L_it_map...)
+  // vaciar el mapa una sola vez, fuera del for: borrarlo dentro invalida L_it_map
+  if (!(*P_action_map)->empty()) {
+    (*P_action_map)->erase((*P_action_map)->begin(), (*P_action_map)->end());
+  }
 }
 
 void C_ScenarioControl::set_rsp_time_logger(C_ResponseTimeLog *P_rsptimelog) {
