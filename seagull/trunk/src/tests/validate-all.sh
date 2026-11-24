@@ -36,7 +36,7 @@ build() { # nombre, opciones de cmake...
 stage "0. Preflight"
 pkill seagull 2>/dev/null; sleep 1
 if ss -ltn | grep -q ':3868 '; then fail "puerto 3868 ocupado"; else ok "puerto 3868 libre"; fi
-for f in "$HERE/unit/test_auth.c" "$HERE/unit/test_radius.cpp" "$HERE/unit/test_bufferutils.cpp" "$HERE/unit/build-test-bufferutils.sh" "$HERE/test-cdata.sh" "$HERE/test-errorpaths.sh" "$CERTS/cert.pem" "$CERTS/key.pem" "$HERE/run-diameter.sh" "$HERE/run-diameter-tls.sh" "$HERE/run-diameter-sctp.sh" "$HERE/run-diameter-load.sh" "$HERE/verify.sh" "$HERE/resumen.sh" "$HERE/validate-crypto.sh" "$EXPECTED/client.txt" "$EXPECTED/server.txt"; do
+for f in "$HERE/unit/test_auth.c" "$HERE/unit/test_radius.cpp" "$HERE/unit/test_bufferutils.cpp" "$HERE/unit/build-test-bufferutils.sh" "$HERE/test-cdata.sh" "$HERE/test-errorpaths.sh" "$HERE/test-correlation.sh" "$CERTS/cert.pem" "$CERTS/key.pem" "$HERE/run-diameter.sh" "$HERE/run-diameter-tls.sh" "$HERE/run-diameter-sctp.sh" "$HERE/run-diameter-load.sh" "$HERE/verify.sh" "$HERE/resumen.sh" "$HERE/validate-crypto.sh" "$EXPECTED/client.txt" "$EXPECTED/server.txt"; do
   if [ -f "$f" ]; then ok "existe $(basename "$f")"; else fail "falta $f"; fi
 done
 if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
@@ -73,6 +73,8 @@ FILL_PATTERN=1 "$HERE/run-diameter-any.sh" tcp "$SRC/build-asan/bin" "$D/out-fil
 if grep -q 'RESULTADO: OK' "$D/fillpattern.log"; then ok "fill-pattern (ASan/LSan)"; else fail "fill-pattern (ver $D/fillpattern.log)"; fi
 "$HERE/test-errorpaths.sh" "$SRC/build-asan/bin" "$D/out-errorpaths" > "$D/errorpaths.log" 2>&1
 if grep -q 'RESULTADO: OK' "$D/errorpaths.log"; then ok "rutas de error de fill-size/fill-pattern (ASan/LSan)"; else fail "rutas de error de fill-size/fill-pattern (ver $D/errorpaths.log)"; fi
+"$HERE/test-correlation.sh" "$SRC/build-asan/bin" "$D/out-correlation" > "$D/correlation.log" 2>&1
+if grep -q 'RESULTADO: OK' "$D/correlation.log"; then ok "etiquetas sin consumir en correlation (ASan/LSan)"; else fail "etiquetas sin consumir en correlation (ver $D/correlation.log)"; fi
 
 stage "3. Diameter TCP con ASan, comparado con la referencia gnu++98"
 "$HERE/verify.sh" "$SRC/build-asan/bin" "$D/out-tcp-asan" > "$D/tcp-asan.log" 2>&1
