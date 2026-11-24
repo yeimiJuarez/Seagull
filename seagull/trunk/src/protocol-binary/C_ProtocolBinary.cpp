@@ -644,6 +644,7 @@ int C_ProtocolBinary::analyze_dictionnary_from_xml (C_XmlData *P_def) {
                       T_pHeaderValue,
                       sizeof(T_HeaderValue),
                       m_nb_header_values);
+          memset(m_header_value_table, 0, sizeof(T_HeaderValue) * m_nb_header_values);
           
           ALLOC_TABLE(m_body_value_table,
                       T_pBodyValueDef,
@@ -1031,6 +1032,7 @@ C_ProtocolBinary::~C_ProtocolBinary() {
     FREE_TABLE(m_header_body_value_table[L_i].m_value_setted);
     FREE_TABLE(m_header_body_value_table[L_i].m_values);
     FREE_TABLE(m_header_body_value_table[L_i].m_size);
+    FREE_TABLE(m_header_body_value_table[L_i].m_present);
   }
   FREE_TABLE(m_header_body_value_table);
 
@@ -2117,6 +2119,7 @@ int C_ProtocolBinary::get_header_body_values_from_xml (C_XmlData *P_def) {
               T_pHeaderBodyValue,
               sizeof(T_HeaderBodyValue),
               m_nb_header_body_values);
+  memset(m_header_body_value_table, 0, sizeof(T_HeaderBodyValue) * m_nb_header_body_values);
   
   L_id = 0 ;
   L_subListDefine = P_def->get_sub_data() ;
