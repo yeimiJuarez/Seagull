@@ -84,6 +84,14 @@ C_DisplayControl::~C_DisplayControl(){
   DELETE_VAR (m_sem_pause);
 
   if (!m_screen_list->empty()) {
+    T_ScreenDataList::iterator L_screen_it ;
+    // m_screen_list es duena de las copias de comentario (add_screen);
+    // m_screen_table[].m_comment y m_help_table[].m_comment son alias
+    for (L_screen_it = m_screen_list->begin();
+         L_screen_it != m_screen_list->end();
+         L_screen_it++) {
+      FREE_TABLE(L_screen_it->m_comment);
+    }
     m_screen_list->erase(m_screen_list->begin(), 
 			 m_screen_list->end());
   }
@@ -92,7 +100,7 @@ C_DisplayControl::~C_DisplayControl(){
 
   for(L_i=0; L_i < MAX_KEY; L_i++) {
     FREE_TABLE(m_screen_table[L_i].m_screen_object);
-    FREE_TABLE(m_screen_table[L_i].m_comment);
+    // m_comment: alias, liberado a traves de m_screen_list
   }
   FREE_TABLE (m_screen_table);
 
