@@ -536,3 +536,15 @@ void convert_ll_to_bin_network(unsigned char   *P_buf,
   GEN_DEBUG(1, "convert_ll_to_bin_network() end");
 }
 
+
+void fill_with_pattern (unsigned char* P_dst, size_t P_gap,
+                        const unsigned char* P_pattern, size_t P_pattern_size) {
+  if (P_dst == nullptr) { return ; }
+  if ((P_pattern == nullptr) || (P_pattern_size == 0)) {
+    memset(P_dst, 0, P_gap) ;
+    return ;
+  }
+  for (size_t L_i = 0 ; L_i < P_gap ; L_i++) {
+    P_dst[L_i] = P_pattern[L_i % P_pattern_size] ;
+  }
+}

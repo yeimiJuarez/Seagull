@@ -30,6 +30,11 @@ size_t convert_bin_to_hexa_char_n (const unsigned char* P_buf, size_t P_size,
 [[deprecated("usar convert_bin_to_hexa_char_n")]]
 void convert_bin_to_hexa_char(unsigned char*P_buf, size_t P_size, char* P_res);
 
+// Rellena P_dst[0..P_gap) con P_pattern repetido (la ultima repeticion se trunca).
+// Sin patron (NULL o tamano 0) rellena con ceros. Escribe exactamente P_gap bytes.
+void fill_with_pattern (unsigned char* P_dst, size_t P_gap,
+                        const unsigned char* P_pattern, size_t P_pattern_size) ;
+
 unsigned char *convert_hexa_char_to_bin(char* P_data, size_t *P_bufSize);
 
 T_UnsignedInteger32 convert_bin_network_to_ul(unsigned char*P_buf, size_t P_size) ;

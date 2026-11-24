@@ -43,7 +43,43 @@ static void test_hexa_to_bin () {
 }
 #undef HEX_BAD
 
+#ifndef PBB_HEAD_RUN
+// fill_with_pattern: el hueco se rellena con el patron repetido y no se escribe mas alla
+static void test_fill_with_pattern () {
+  const unsigned char P2 [] = { 0x41, 0x42 } ;
+  const unsigned char P8 [] = { 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38 } ;
+  unsigned char b [16] ;
+
+  std::memset(b, 0x7f, sizeof(b)) ;
+  fill_with_pattern(b, 5, P2, sizeof(P2)) ;
+  CHECK(std::memcmp(b, "ABABA", 5) == 0) ; CHECK(b[5] == 0x7f) ;
+
+  std::memset(b, 0x7f, sizeof(b)) ;
+  fill_with_pattern(b, 6, P8, sizeof(P8)) ;
+  CHECK(std::memcmp(b, "123456", 6) == 0) ; CHECK(b[6] == 0x7f) ;
+
+  std::memset(b, 0x7f, sizeof(b)) ;
+  fill_with_pattern(b, 8, P8, sizeof(P8)) ;
+  CHECK(std::memcmp(b, "12345678", 8) == 0) ; CHECK(b[8] == 0x7f) ;
+
+  std::memset(b, 0x7f, sizeof(b)) ;
+  fill_with_pattern(b, 0, P2, sizeof(P2)) ;
+  CHECK(b[0] == 0x7f) ;
+
+  std::memset(b, 0x7f, sizeof(b)) ;
+  fill_with_pattern(b, 4, nullptr, 0) ;
+  CHECK((b[0] == 0) && (b[3] == 0)) ; CHECK(b[4] == 0x7f) ;
+
+  std::memset(b, 0x7f, sizeof(b)) ;
+  fill_with_pattern(b, 4, P2, 0) ;
+  CHECK((b[0] == 0) && (b[3] == 0)) ; CHECK(b[4] == 0x7f) ;
+}
+#endif
+
 int main () {
+#ifndef PBB_HEAD_RUN
+  test_fill_with_pattern() ;
+#endif
   test_hexa_to_bin() ;
 #ifdef PBB_HEAD_RUN
   std::printf("hexa-only: %d fallos", g_fail) ; std::puts("") ;
