@@ -785,8 +785,8 @@ C_SocketWithData::C_SocketWithData(T_SocketType P_type,
   m_remote_sockaddr_ptr     = NULL ;
   m_len_remote_sockaddr_ptr = NULL ;
 
+  memset(&m_remote_sockaddr, 0, sizeof(m_remote_sockaddr));
   m_len_remote_sockaddr = SOCKADDR_IN_SIZE(&m_remote_sockaddr);
-  memset(&m_remote_sockaddr, 0, m_len_remote_sockaddr);
 }
 
 C_pDataDecode C_SocketWithData::get_decode() {
