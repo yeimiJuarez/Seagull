@@ -1,5 +1,6 @@
 #!/bin/bash
 # uso: run-diameter-any.sh <tcp|tls|sctp> <dir-binarios> <dir-salida> [clave] [passwd]   (TLS: PROBE=1 prueba s_client)  (vars opcionales: DICO=base_cx.xml SCEN=sar-saa MAX_ERR=0 NCALLS=n RATE=r)
+# FILL_PATTERN=1: aplica fill-pattern a HbH-id del cliente (prueba la liberacion del patron)
 . "$(dirname "${0}")/lib.sh"
 HERE=$(dirname "$(realpath "${0}")")
 : "${LSAN_OPTIONS:=suppressions=$HERE/lsan.supp:print_suppressions=1}"
@@ -56,6 +57,11 @@ cd "$OUT/env/run" || exit 1
 for f in ../config/$DICO ../scenario/$SCEN.server.xml ../scenario/$SCEN.client.xml; do
   [ -f "$f" ] || { echo "falta $f en $OUT/env"; exit 1; }
 done
+if [ -n "${FILL_PATTERN:-}" ]; then
+  # fill-pattern sobre un campo numerico: ejercita la carga del patron sin alterar el trafico
+  sed -i 's|<set-value name="HbH-id"|<set-value fill-size="60" fill-pattern="0x2e2e" name="HbH-id"|' ../scenario/$SCEN.client.xml
+  if ! grep -q 'fill-pattern' ../scenario/$SCEN.client.xml; then echo "FILL_PATTERN: el escenario $SCEN no tiene HbH-id, no se aplico fill-pattern"; exit 1; fi
+fi
 export LD_LIBRARY_PATH="$BIN"
 COMMON="-dico ../config/$DICO -bg -llevel ET"
 getpid() {
