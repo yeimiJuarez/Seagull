@@ -26,7 +26,7 @@ Antes de cada sesión: `export LC_ALL=C` (los scripts buscan `warning:` en ingl�
 | `resumen.sh` | Extrae los contadores finales de un CSV de protocolo |
 | `expected/` | Referencia gnu++98 en texto (cliente y servidor) |
 | `unit/` | Pruebas unitarias de crypto (Radius, Digest RFC 2617) y de BufferUtils (build-test-bufferutils.sh, ASan/UBSan) |
-| `lsan.supp` | Supresiones de LeakSanitizer (solo leaks de arranque conocidos) |
+| `lsan.supp` | Supresiones de LeakSanitizer (vacío a propósito: sin supresiones activas) |
 
 El entorno de cada corrida se genera copiando `exe-env/diameter-env` (que **no se
 modifica**, porque se distribuye a usuarios) y aplicando los ajustes de prueba:
@@ -135,9 +135,9 @@ no está cargado, esa etapa queda como AVISO). Logs en
   SAA comparten el código de comando 301 y las respuestas se cuentan como
   `SAR received`. Para validar el cliente usar `TrafficSuccessfulCall(C)` y
   `FailedCall(C)` de `client-stat.csv`.
-- **Leaks de arranque**: el diccionario binario (`C_ProtocolBinary`), la línea de comandos y las pantallas de
-  display reservan memoria que no se libera hasta salir. No crecen con el tráfico;
-  están en `lsan.supp`. Cualquier otro leak se sigue reportando.
+- **Leaks de arranque**: corregidos (diccionario binario, línea de comandos y pantallas
+  de display). `lsan.supp` queda vacío a propósito: cualquier leak se reporta y
+  debe corregirse, no suprimirse.
 - **Certificados**: no se versionan (`*.pem` y `*.key` están en `.gitignore`).
   Se regeneran con `tests/gen-certs.sh` cuando caducan.
 - **Buffers de SCTP**: con `buffer=` pequeño (por ejemplo 4096), el SCTP del kernel no
