@@ -211,6 +211,7 @@ int main_tool(int P_argc, char**P_argv) {
 
 
   destroy_cmd(L_cmd_line);
+  FREE_TABLE(L_cmd_line->m_args);
   L_cmd_line->m_nb_args += 2 ;
   FREE_VAR(L_cmd_line);
 
