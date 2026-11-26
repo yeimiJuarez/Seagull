@@ -59,6 +59,20 @@ caso() {
   fi
 }
 
+caso_hex() {
+  local n="${1}" hex="${2}" modo="${3}"
+  mk "$n" "<CDATA value=\"$hex\"></CDATA>"
+  run "$n"
+  if grep -q -F 'Unrecognized buffer header' "$OUT/env/logs/$n.log"; then
+    fallo "$n: arnes vacuo (el comando no esta en el diccionario)"
+  fi
+  if [ "$modo" = err ]; then
+    grep -q -F 'Error while decoding direct data buffer' "$OUT/env/logs/$n.log" || fallo "$n: el buffer malformado no fue rechazado"
+  else
+    grep -q -F 'PID [' "$OUT/env/logs/$n.log" || fallo "$n: el buffer valido no fue aceptado"
+  fi
+}
+
 caso mal-ok          000024 00000f ok
 caso mal-msglen-16   000010 00000f err
 caso mal-msglen-0    000000 00000f err
@@ -67,6 +81,9 @@ caso mal-avplen-0    000024 000000 err
 caso mal-avplen-huge 000024 00ffff err
 caso mal-msglen-huge 00ffff 00000f err
 caso mal-trailing 000027 00000f err 000001
+caso_hex mal-grouped-ok 01000038800001010000000000000001000000010000010440000024000001084000000f73656167756c6c000000010a4000000c0000000b ok
+caso_hex mal-grouped-a  01000034800001010000000000000001000000010000010440000020000001084000000f73656167756c6c000000010a40000004 err
+caso_hex mal-grouped-b  01000038800001010000000000000001000000010000010440000024000001084000000f73656167756c6c000000010a4000000400000000 err
 
 if [ "$NERR" -eq 0 ]; then echo "RESULTADO: OK"; else echo "RESULTADO: FALLO ($NERR)"; exit 1; fi
 
