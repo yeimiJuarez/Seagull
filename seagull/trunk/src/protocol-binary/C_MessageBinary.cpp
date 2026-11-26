@@ -268,6 +268,9 @@ unsigned long C_MessageBinary::decode (unsigned char *P_buffer,
   unsigned long  L_ret = 0 ; 
   unsigned long  L_size_to_decode = 0 ;
   unsigned long  L_body_size = 0 ;
+  unsigned long  L_msg_size = 0 ;
+  unsigned long  L_msg_start = 0 ;
+  bool           L_coherent = true ;
   int            L_ret_decode ;
 
   GEN_DEBUG(1, "C_MessageBinary::decode() start");
@@ -284,35 +287,44 @@ unsigned long C_MessageBinary::decode (unsigned char *P_buffer,
 
   } else {
     L_ptr += L_size_to_decode ;
+    L_msg_size = m_protocol->decode_msg_size (P_buffer, P_size) ;
 
+    // the declared length comes from the network: check it before any
+    // unsigned subtraction (a length smaller than the header wrapped around)
     if (m_protocol->get_msg_length_start_detected()) {
-      L_body_size 
-        = m_protocol->decode_msg_size (P_buffer, P_size)
-        - L_size_to_decode + m_protocol->get_msg_length_start() ;
-    } else {
-      if(m_protocol->get_header_length_excluded () ) {
-        L_body_size 
-          = m_protocol->decode_msg_size (P_buffer, P_size) ;
-      } else {
-        L_body_size 
-          = m_protocol->decode_msg_size (P_buffer, P_size)
-          - L_size_to_decode ;
+      L_msg_start = m_protocol->get_msg_length_start() ;
+      if ((L_msg_size < L_size_to_decode) &&
+          ((L_msg_size + L_msg_start) < L_size_to_decode)) {
+        L_coherent = false ;
       }
+      L_body_size = L_msg_size - L_size_to_decode + L_msg_start ;
+    } else if (m_protocol->get_header_length_excluded()) {
+      L_body_size = L_msg_size ;
+    } else {
+      if (L_msg_size < L_size_to_decode) {
+        L_coherent = false ;
+      }
+      L_body_size = L_msg_size - L_size_to_decode ;
     }
 
     GEN_DEBUG(1, "C_MessageBinary::decode() body size [" << L_body_size << "]");
 
-    L_size_to_decode += L_body_size ;
+    if (L_coherent == false) {
 
-    if (P_size < L_size_to_decode) {
+      GEN_ERROR(E_GEN_FATAL_ERROR, "message error (declared length ["
+                << L_msg_size << "] smaller than the header)");
+      *P_error = C_ProtocolFrame::E_MSG_ERROR_DECODING;
+      L_ret = 0 ;
+
+    } else if (L_body_size > (P_size - L_size_to_decode)) {
 
       // segmentation case
-      // *P_error = C_ProtocolBinaryFrame::E_MSG_ERROR_DECODING_SIZE_LESS ;
       *P_error = C_ProtocolFrame::E_MSG_ERROR_DECODING_SIZE_LESS ;
-      
       GEN_DEBUG(1, "C_MessageBinary::decode() size < body");
       
     } else { // ok lets decode the buffer
+
+      L_size_to_decode += L_body_size ;
 
       GEN_DEBUG(1, "C_MessageBinary::decode() message complete [buf size " 
 		   << L_size_to_decode <<" | body size "<< L_body_size << "]");
@@ -339,27 +351,20 @@ unsigned long C_MessageBinary::decode (unsigned char *P_buffer,
 	} else {
 	  
 	  GEN_ERROR(E_GEN_FATAL_ERROR, "message error (body content)");
-          //	  *P_error = C_ProtocolBinaryFrame::E_MSG_ERROR_DECODING;
 	  *P_error = C_ProtocolFrame::E_MSG_ERROR_DECODING;
 	  L_ret = 0 ;
 
 	}
-	  
 
       } else {
         GEN_ERROR(E_GEN_FATAL_ERROR, "Unrecognized buffer header");	
 	*P_error = C_ProtocolFrame::E_MSG_ERROR_DECODING;
 	L_ret = 0 ;
       }
-
       
     }
 
   }
-
-  // TO BE IMPLEMENTED
-  // check the size of buffer according to the
-  // protocol definition
 
   GEN_DEBUG(1, "C_MessageBinary::decode() end");
   

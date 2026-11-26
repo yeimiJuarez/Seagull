@@ -3119,10 +3119,11 @@ int C_ProtocolBinary::decode_body(unsigned char *P_buf,
       L_body_fieldDescr = &m_header_body_field_table[L_body_fieldIdx];
       L_current_size  = L_body_fieldDescr -> m_size ;
       L_header_body_size  += L_current_size ;
+      if (L_current_size > (P_size - L_total_size)) { *P_nbValDec = L_nbValDec ; return (-1) ; }
       L_current_value = convert_bin_network_to_ul(L_ptr, L_current_size);
       L_body_found_val[L_body_fieldIdx] = L_current_value ;
       L_total_size += L_current_size ;
-      if (L_total_size >= P_size) return (-1) ;
+      if (L_total_size >= P_size) { *P_nbValDec = L_nbValDec ; return (-1) ; }
       L_ptr += L_current_size ;
     }
 
@@ -3146,6 +3147,7 @@ int C_ProtocolBinary::decode_body(unsigned char *P_buf,
       if (L_body_fieldValues-> m_present[L_body_fieldIdx2]) {
       L_current_size  = L_body_fieldValues-> m_size[L_body_fieldIdx2] ;
       L_header_body_size  += L_current_size ;
+      if (L_current_size > (P_size - L_total_size)) { *P_nbValDec = L_nbValDec ; return (-1) ; }
       L_current_value = convert_bin_network_to_ul(L_ptr, L_current_size);
       L_body_found_val[L_body_fieldIdx2] = L_current_value ;
       
@@ -3154,7 +3156,7 @@ int C_ProtocolBinary::decode_body(unsigned char *P_buf,
       }
       
       L_total_size += L_current_size ;
-      if (L_total_size >= P_size) return (-1) ;
+      if (L_total_size >= P_size) { *P_nbValDec = L_nbValDec ; return (-1) ; }
       L_ptr += L_current_size ;
       }
     } // for
@@ -3172,15 +3174,21 @@ int C_ProtocolBinary::decode_body(unsigned char *P_buf,
           L_current_size = L_body_fieldValues-> m_size[L_body_fieldIdx] ;
           L_header_body_size += L_current_size ;
           
+	  if (L_current_size > (P_size - L_total_size)) { *P_nbValDec = L_nbValDec ; return (-1) ; }
 	  L_current_value = convert_bin_network_to_ul(L_ptr, L_current_size);
 	  L_total_size += L_current_size ;
-	  if (L_total_size >= P_size) return (-1) ;
+	  if (L_total_size >= P_size) { *P_nbValDec = L_nbValDec ; return (-1) ; }
 	  L_ptr += L_current_size ;
 	}
       }
     } // if (m_header_body_start_optional_id != -1)
     
     if(! get_header_length_excluded ()) {
+      if (L_data_size < L_header_body_size) {
+        GEN_ERROR(E_GEN_FATAL_ERROR, "message size error (length < header)");
+        *P_nbValDec = L_nbValDec ;
+        return (-1) ;
+      }
       L_data_size -= L_header_body_size ;
     }
 
@@ -3196,7 +3204,7 @@ int C_ProtocolBinary::decode_body(unsigned char *P_buf,
 
 
     // now retrieve data type and value
-    if ((L_total_size + L_data_size) <= P_size) {
+    if ((L_total_size <= P_size) && (L_data_size <= (P_size - L_total_size))) {
 
       if (L_header_body_type_id_present) {
       if (m_stats) {
@@ -3312,6 +3320,7 @@ int C_ProtocolBinary::decode_body(unsigned char *P_buf,
 	    L_nbValDec++;
 	    
 	  } else {
+	    reset_body_values(L_val_nb, L_body_val);
 	    GEN_ERROR (E_GEN_FATAL_ERROR, "Erroneous grouped value");
 	    L_ret = -1 ;
 	  }
