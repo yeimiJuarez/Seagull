@@ -79,6 +79,8 @@ if grep -q 'RESULTADO: OK' "$D/correlation.log"; then ok "etiquetas sin consumir
 if grep -q 'RESULTADO: OK' "$D/malformed.log"; then ok "longitudes incoherentes en mensajes Diameter (ASan/LSan)"; else fail "longitudes incoherentes en mensajes Diameter (ver $D/malformed.log)"; fi
 "$HERE/test-correlation-run.sh" "$SRC/build-asan/bin" "$D/out-correlation-run" > "$D/correlation-run.log" 2>&1
 if grep -q 'RESULTADO: OK' "$D/correlation-run.log"; then ok "etiquetas sin consumir en correlation, con trafico (ASan/LSan)"; else fail "etiquetas sin consumir en correlation, con trafico (ver $D/correlation-run.log)"; fi
+WITH_REGEXP=1 "$HERE/test-correlation-run.sh" "$SRC/build-asan/bin" "$D/out-correlation-run-rx" > "$D/correlation-run-rx.log" 2>&1
+if grep -q 'RESULTADO: OK' "$D/correlation-run-rx.log"; then ok "etiquetas sin consumir en correlation, con trafico y regexp (ASan/LSan)"; else fail "etiquetas sin consumir en correlation, con trafico y regexp (ver $D/correlation-run-rx.log)"; fi
 "$HERE/test-regexp.sh" "$SRC/build-asan/bin" "$D/out-regexp" > "$D/regexp.log" 2>&1
 if grep -q 'RESULTADO: OK' "$D/regexp.log"; then ok "regexp en store: carga y rechazo (ASan/LSan)"; else fail "regexp en store: carga y rechazo (ver $D/regexp.log)"; fi
 

@@ -53,6 +53,11 @@ intr && !s && sub(/<send channel="channel-1">/, "<send channel=\"channel-1\" lab
 intr && !r && sub(/<receive channel="channel-1">/, "<receive channel=\"channel-1\" label=\"b1\">") { r = 1 }
 { print }
 ' "$BASE" > "$S"
+if [ "${WITH_REGEXP:-0}" = 1 ]; then
+  echo "variante: con regexp en el store (copia profunda del C_RegExp)"
+  sed -i 's|<start-timer></start-timer>|<start-timer></start-timer><store name="rx1" entity="Session-Id"><regexp expr="[0-9]+" nbexpr="1" subexpr="0"></regexp></store>|' "$S"
+  grep -q -F '<regexp' "$S" || { echo "RESULTADO: FALLO (no se pudo insertar la regexp)"; exit 1; }
+fi
 if [ "$(grep -c -F 'label="' "$S")" != 2 ] || ! grep -q -F '<correlation>' "$S"; then
   echo "RESULTADO: FALLO (no se pudo generar el escenario de prueba)"; exit 1
 fi
