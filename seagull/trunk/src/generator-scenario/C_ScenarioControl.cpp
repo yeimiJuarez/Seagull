@@ -1299,6 +1299,7 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
 
       L_actionName = L_action -> get_name() ;
       L_actionFound = false ;
+      DELETE_VAR(L_regexp_data); // el de la accion anterior (ya copiado al mapa)
       L_begin_present=false ;
       for(L_i=0;
 	  L_i< (T_action_type)E_NB_ACTION_SCEN ;
@@ -1547,6 +1548,7 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
                 if (L_error_comp == 0) {
                   L_actionData->m_regexp_data = L_cRegExp ;
                 } else {
+                  DELETE_VAR(L_cRegExp);
                   GEN_ERROR(E_GEN_FATAL_ERROR, 
                             "Bad regular expression ["
                             << L_regexp_data->m_expr 
@@ -2859,6 +2861,8 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
       if (L_ret == -1) break ;
 
     } // for (L_actionListIt
+    // liberar el ultimo T_ActionRegExpStr (la copia del mapa ya uso sus datos)
+    DELETE_VAR(L_regexp_data);
     
     if (L_ret != -1) {
       if ((P_pre_action == true) && (P_pre_action_done == false)) {
