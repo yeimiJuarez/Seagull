@@ -904,6 +904,7 @@ void C_Scenario::update_post_actions
   T_pCmd_scenario L_cmd_sequence = &(m_cmd_sequence[P_cmd_index]) ;
 
   if ((P_nb_post_action != 0) && (P_post_act_table != NULL)) {
+    delete_post_actions(P_cmd_index);
     L_cmd_sequence->m_post_action = P_nb_post_action ;
     L_cmd_sequence->m_post_action_table = P_post_act_table ;
   }
@@ -918,6 +919,7 @@ void C_Scenario::update_pre_actions
   
   T_pCmd_scenario L_cmd_sequence = &(m_cmd_sequence[P_cmd_index]) ;
   if ((P_nb_pre_action != 0) && (P_pre_act_table != NULL)) {
+    delete_pre_actions(P_cmd_index);
     L_cmd_sequence->m_pre_action = P_nb_pre_action ;
     L_cmd_sequence->m_pre_action_table = P_pre_act_table ;
   }

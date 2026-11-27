@@ -99,6 +99,52 @@ static void delete_action_list (T_CommandActionLst& P_list) {
 }
 
   
+// Copia profunda de una expresion de formato: cada accion debe ser duena
+// de la suya (la accion del escenario y la copia de la correlacion
+// compartian el puntero y ambos destructores lo liberaban).
+static T_pStringExpression clone_string_expr (T_pStringExpression P_src) {
+  T_pStringExpression L_new = NULL ;
+  int                 L_i ;
+  if (P_src == NULL) { return (NULL) ; }
+  ALLOC_VAR(L_new, T_pStringExpression, sizeof(T_StringExpression));
+  L_new->m_nb_portion = 0 ;
+  L_new->m_portions   = NULL ;
+  if ((P_src->m_nb_portion != 0) && (P_src->m_portions != NULL)) {
+    ALLOC_TABLE(L_new->m_portions, T_pStringValue,
+                sizeof(T_StringValue), P_src->m_nb_portion);
+    L_new->m_nb_portion = P_src->m_nb_portion ;
+    for (L_i = 0; L_i < P_src->m_nb_portion; L_i++) {
+      L_new->m_portions[L_i] = P_src->m_portions[L_i] ;
+      if ((P_src->m_portions[L_i].m_type == E_STR_STATIC) &&
+          (P_src->m_portions[L_i].m_data.m_value != NULL)) {
+        ALLOC_TABLE(L_new->m_portions[L_i].m_data.m_value, char*,
+                    sizeof(char),
+                    strlen(P_src->m_portions[L_i].m_data.m_value) + 1);
+        strcpy(L_new->m_portions[L_i].m_data.m_value,
+               P_src->m_portions[L_i].m_data.m_value);
+      }
+    }
+  }
+  return (L_new) ;
+}
+
+// Devuelve una copia de la accion con memoria propia (string_expr, regexp)
+static T_CmdAction clone_cmd_action (T_pCmdAction       P_src,
+                                     T_pActionRegExpStr P_regexp) {
+  T_CmdAction L_copy = *P_src ;
+  int         L_error = 0 ;
+  L_copy.m_string_expr = clone_string_expr(P_src->m_string_expr);
+  if ((P_src->m_regexp_data != NULL) && (P_regexp != NULL)) {
+    NEW_VAR(L_copy.m_regexp_data, C_RegExp(P_regexp->m_expr,
+                                           &L_error,
+                                           P_regexp->m_nb_match,
+                                           P_regexp->m_sub_match,
+                                           P_regexp->m_line));
+  }
+  return (L_copy) ;
+}
+
+
 C_ScenarioControl::C_ScenarioControl(C_ProtocolControl  *P_protocol_control,
 				     C_TransportControl *P_transport_control,
 				     C_ChannelControl   *P_channel_control) {
@@ -2763,7 +2809,7 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
               if ((m_correlation_section == true) &&
                   (P_label_command != NULL)) {
                 P_CommandActionLabelLst.push_back
-                  (P_CmdActionFactory.create(*L_actionData));
+                  (P_CmdActionFactory.create(clone_cmd_action(L_actionData, L_regexp_data)));
               }
               FREE_VAR(L_actionData);
               P_nb_action++ ;
@@ -2783,7 +2829,7 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
                 if ((m_correlation_section == true) &&
                     (P_label_command != NULL)) {
                   P_CommandActionLabelLst.push_back
-                    (P_CmdActionFactory.create(*L_actionData));
+                    (P_CmdActionFactory.create(clone_cmd_action(L_actionData, L_regexp_data)));
                 }
                 FREE_VAR(L_actionData);
                 P_nb_action++ ;
@@ -2794,7 +2840,7 @@ int C_ScenarioControl::add_actions (C_XmlData                *P_msgData,
               if ((m_correlation_section == true) &&
                   (P_label_command != NULL)) {
                 P_CommandActionLabelLst.push_back
-                  (P_CmdActionFactory.create(*L_actionData));
+                  (P_CmdActionFactory.create(clone_cmd_action(L_actionData, L_regexp_data)));
               }
               FREE_VAR(L_actionData);
               P_nb_action++ ;
