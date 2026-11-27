@@ -36,7 +36,7 @@ build() { # nombre, opciones de cmake...
 stage "0. Preflight"
 pkill seagull 2>/dev/null; sleep 1
 if ss -ltn | grep -q ':3868 '; then fail "puerto 3868 ocupado"; else ok "puerto 3868 libre"; fi
-for f in "$HERE/unit/test_auth.c" "$HERE/unit/test_radius.cpp" "$HERE/unit/test_bufferutils.cpp" "$HERE/unit/build-test-bufferutils.sh" "$HERE/test-cdata.sh" "$HERE/test-errorpaths.sh" "$HERE/test-correlation.sh" "$HERE/test-malformed.sh" "$CERTS/cert.pem" "$CERTS/key.pem" "$HERE/run-diameter.sh" "$HERE/run-diameter-tls.sh" "$HERE/run-diameter-sctp.sh" "$HERE/run-diameter-load.sh" "$HERE/verify.sh" "$HERE/resumen.sh" "$HERE/validate-crypto.sh" "$EXPECTED/client.txt" "$EXPECTED/server.txt"; do
+for f in "$HERE/unit/test_auth.c" "$HERE/unit/test_radius.cpp" "$HERE/unit/test_bufferutils.cpp" "$HERE/unit/build-test-bufferutils.sh" "$HERE/test-cdata.sh" "$HERE/test-errorpaths.sh" "$HERE/test-correlation.sh" "$HERE/test-malformed.sh" "$HERE/test-correlation-run.sh" "$CERTS/cert.pem" "$CERTS/key.pem" "$HERE/run-diameter.sh" "$HERE/run-diameter-tls.sh" "$HERE/run-diameter-sctp.sh" "$HERE/run-diameter-load.sh" "$HERE/verify.sh" "$HERE/resumen.sh" "$HERE/validate-crypto.sh" "$EXPECTED/client.txt" "$EXPECTED/server.txt"; do
   if [ -f "$f" ]; then ok "existe $(basename "$f")"; else fail "falta $f"; fi
 done
 if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
@@ -77,6 +77,8 @@ if grep -q 'RESULTADO: OK' "$D/errorpaths.log"; then ok "rutas de error de fill-
 if grep -q 'RESULTADO: OK' "$D/correlation.log"; then ok "etiquetas sin consumir en correlation (ASan/LSan)"; else fail "etiquetas sin consumir en correlation (ver $D/correlation.log)"; fi
 "$HERE/test-malformed.sh" "$SRC/build-asan/bin" "$D/out-malformed" > "$D/malformed.log" 2>&1
 if grep -q 'RESULTADO: OK' "$D/malformed.log"; then ok "longitudes incoherentes en mensajes Diameter (ASan/LSan)"; else fail "longitudes incoherentes en mensajes Diameter (ver $D/malformed.log)"; fi
+"$HERE/test-correlation-run.sh" "$SRC/build-asan/bin" "$D/out-correlation-run" > "$D/correlation-run.log" 2>&1
+if grep -q 'RESULTADO: OK' "$D/correlation-run.log"; then ok "etiquetas sin consumir en correlation, con trafico (ASan/LSan)"; else fail "etiquetas sin consumir en correlation, con trafico (ver $D/correlation-run.log)"; fi
 
 stage "3. Diameter TCP con ASan, comparado con la referencia gnu++98"
 "$HERE/verify.sh" "$SRC/build-asan/bin" "$D/out-tcp-asan" > "$D/tcp-asan.log" 2>&1
