@@ -3003,7 +3003,7 @@ int C_ScenarioControl::add_expression (char       *P_arg,
   size_t L_size, L_i, L_j ;
   int    L_type;
 
-  char   L_value[100] ;
+  char  *L_value = NULL ; // dinamico: antes char[100] (se desbordaba)
   size_t L_value_size = 0 ;
 
   list_t<T_pStringValue> L_list ;
@@ -3014,6 +3014,7 @@ int C_ScenarioControl::add_expression (char       *P_arg,
 
   L_ptr = P_arg ;
   L_size = strlen(L_ptr) ;
+  ALLOC_TABLE(L_value, char*, sizeof(char), L_size + 2);
 
   //  std::cerr << "size   *****" << L_size << std::endl;
   // std::cerr << "buffer *****" << L_ptr << std::endl;
@@ -3069,6 +3070,7 @@ int C_ScenarioControl::add_expression (char       *P_arg,
               GEN_ERROR(E_GEN_FATAL_ERROR,
                         "Unable to find definition for ["
                         << L_value << "]");
+              FREE_VAR(L_string_val); // reservado y aun no encolado
               L_ret = -1 ;
               break ;
             } else {
@@ -3110,6 +3112,18 @@ int C_ScenarioControl::add_expression (char       *P_arg,
     }
     if (L_ret == -1) break ;
     L_i ++ ;
+  }
+
+  // error: liberar lo ya construido (textos estaticos y T_StringValue)
+  if (L_ret == -1) {
+    for (L_it = L_list.begin(); L_it != L_list.end(); L_it++) {
+      if (((*L_it)->m_type == E_STR_STATIC) &&
+          ((*L_it)->m_data.m_value != NULL)) {
+        FREE_TABLE((*L_it)->m_data.m_value);
+      }
+      FREE_VAR(*L_it);
+    }
+    L_list.erase(L_list.begin(), L_list.end());
   }
 
   if (L_ret == 0) {
@@ -3154,12 +3168,14 @@ int C_ScenarioControl::add_expression (char       *P_arg,
       
     } else {
       L_string_expr->m_portions = NULL ;
+      FREE_VAR(L_string_expr); // sin fragmentos: no se entrega a nadie
     }
     
   }
 
   // analysis of arg2 => format expression
 
+  FREE_TABLE(L_value);
   return (L_ret) ;
 }
 
