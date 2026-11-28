@@ -36,7 +36,7 @@ build() { # nombre, opciones de cmake...
 stage "0. Preflight"
 pkill seagull 2>/dev/null; sleep 1
 if ss -ltn | grep -q ':3868 '; then fail "puerto 3868 ocupado"; else ok "puerto 3868 libre"; fi
-for f in "$HERE/unit/test_auth.c" "$HERE/unit/test_radius.cpp" "$HERE/unit/test_bufferutils.cpp" "$HERE/unit/build-test-bufferutils.sh" "$HERE/test-cdata.sh" "$HERE/test-errorpaths.sh" "$HERE/test-correlation.sh" "$HERE/test-malformed.sh" "$HERE/test-correlation-run.sh" "$HERE/test-regexp.sh" "$CERTS/cert.pem" "$CERTS/key.pem" "$HERE/run-diameter.sh" "$HERE/run-diameter-tls.sh" "$HERE/run-diameter-sctp.sh" "$HERE/run-diameter-load.sh" "$HERE/verify.sh" "$HERE/resumen.sh" "$HERE/validate-crypto.sh" "$EXPECTED/client.txt" "$EXPECTED/server.txt"; do
+for f in "$HERE/unit/test_auth.c" "$HERE/unit/test_radius.cpp" "$HERE/unit/test_bufferutils.cpp" "$HERE/unit/build-test-bufferutils.sh" "$HERE/test-cdata.sh" "$HERE/test-errorpaths.sh" "$HERE/test-correlation.sh" "$HERE/test-malformed.sh" "$HERE/test-correlation-run.sh" "$HERE/test-regexp.sh" "$HERE/test-expression.sh" "$CERTS/cert.pem" "$CERTS/key.pem" "$HERE/run-diameter.sh" "$HERE/run-diameter-tls.sh" "$HERE/run-diameter-sctp.sh" "$HERE/run-diameter-load.sh" "$HERE/verify.sh" "$HERE/resumen.sh" "$HERE/validate-crypto.sh" "$EXPECTED/client.txt" "$EXPECTED/server.txt"; do
   if [ -f "$f" ]; then ok "existe $(basename "$f")"; else fail "falta $f"; fi
 done
 if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
@@ -83,6 +83,8 @@ WITH_REGEXP=1 "$HERE/test-correlation-run.sh" "$SRC/build-asan/bin" "$D/out-corr
 if grep -q 'RESULTADO: OK' "$D/correlation-run-rx.log"; then ok "etiquetas sin consumir en correlation, con trafico y regexp (ASan/LSan)"; else fail "etiquetas sin consumir en correlation, con trafico y regexp (ver $D/correlation-run-rx.log)"; fi
 "$HERE/test-regexp.sh" "$SRC/build-asan/bin" "$D/out-regexp" > "$D/regexp.log" 2>&1
 if grep -q 'RESULTADO: OK' "$D/regexp.log"; then ok "regexp en store: carga y rechazo (ASan/LSan)"; else fail "regexp en store: carga y rechazo (ver $D/regexp.log)"; fi
+"$HERE/test-expression.sh" "$SRC/build-asan/bin" "$D/out-expression" > "$D/expression.log" 2>&1
+if grep -q 'RESULTADO: OK' "$D/expression.log"; then ok "format de set-value: carga, formatos largos y rechazo (ASan/LSan)"; else fail "format de set-value: carga, formatos largos y rechazo (ver $D/expression.log)"; fi
 
 stage "3. Diameter TCP con ASan, comparado con la referencia gnu++98"
 "$HERE/verify.sh" "$SRC/build-asan/bin" "$D/out-tcp-asan" > "$D/tcp-asan.log" 2>&1

@@ -31,6 +31,7 @@ Antes de cada sesión: `export LC_ALL=C` (los scripts buscan `warning:` en ingl�
 | `test-malformed.sh` | Longitudes incoherentes de mensaje y AVP en CDATA Diameter (decode, ASan/LSan, sin servidor) |
 | `test-correlation-run.sh` | Etiquetas sin consumir en `<correlation>` con tráfico y salida ordenada (destrucción del escenario, ASan/LSan, ~20 s); con `WITH_REGEXP=1` añade un `store` con regexp (copia profunda del `C_RegExp`) |
 | `test-regexp.sh` | `<regexp>` dentro de `<store>` en la carga del escenario: válida y rechazada (ASan/LSan, sin servidor) |
+| `test-expression.sh` | Atributo `format` de `set-value` en la carga: válido, largo (>100 caracteres) y rechazado (ASan/LSan/UBSan, sin servidor) |
 | `lsan.supp` | Supresiones de LeakSanitizer (vacío a propósito: sin supresiones activas) |
 
 El entorno de cada corrida se genera copiando `exe-env/diameter-env` (que **no se
